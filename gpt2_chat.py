@@ -44,7 +44,7 @@ if __name__ == "__main__":
     model_path = sys.argv[1] #This accepts the whole folder with the output of the training from gpt
     tokenizer, model = load_model(model_path)
 
-    print("Chatbot is ready! Type 'exit' to quit.\n")
+    # print("Chatbot is ready! Type 'exit' to quit.\n")
 
     while True:
         user_input = input("User: ") #Ctrl + C for emergencies
