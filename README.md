@@ -26,8 +26,8 @@ In the case of the parameters we can test, on the `bot_wcorpus.py` file there ar
 
 Popular ones:
 
-- **temperature** = Higher = more randomness.
-- **top_p** = Lower = limit to top % of probability mass.
+- **temperature** = Higher = more randomness. (higher temperature flattens the probability distribution, making rare tokens/outliers more likely. A predictable output would be something from 0.1 to 0.5. The closer to 1 is a neutral response. going higher that 1 would be more and more chaotic)
+- **top_p** = Lower = limit to top percentage of probability mass. (Same as before, anything in the 0.1 to 0.6 its less random. closer to 1 is the neutral one, open to rare words. 1 just means no filtering, so it relies on temperature.
 - **top_k** = Limit to top K most likely tokens.
 - **repetition_penalty** = Higher = less repeating.
 - **max_length** = How long the output can be.
