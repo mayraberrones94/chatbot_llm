@@ -2,6 +2,12 @@ from transformers import GPT2Tokenizer, GPT2LMHeadModel
 import torch
 import sys
 import re
+import os
+from dotenv import load_dotenv
+from claude_utils import call_model
+import anthropic
+load_dotenv()
+client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 
 
 def trim_fragment_start(text):
@@ -40,7 +46,7 @@ def clean_output(text):
     new_text = " ".join(sentences)
     new_text = trim_fragment_start(new_text)
 
-    return new_text
+    return new_text.strip().lstrip()
 
 def load_model(model_path, device='cpu'):
     tokenizer = GPT2Tokenizer.from_pretrained(model_path)
@@ -55,10 +61,11 @@ def load_model(model_path, device='cpu'):
 
     return tokenizer, model
 
+# this is a call to the dream model
 def generate_follow_up(prompt, tokenizer, model, max_length=200):
-    full_prompt = f"Please repeat exactly the paragraph between the <text> tags, word for word, without any changes or additions. Do NOT include any explanations, dialogue, or additional text: <text>{prompt}</text>.\nRepeat now:"
+    full_prompt = f"We are playing a game of telephone -- please attempt to repeat the text that appears in the <text> tags. Do NOT include any explanations, dialogue, or additional text: <text>{prompt}</text>.\nRepeat now:"
     
-    print('full prompt is', full_prompt)
+    # print('full prompt is', full_prompt)
     input_ids = tokenizer.encode(full_prompt, return_tensors="pt")
 
     with torch.no_grad():
@@ -82,8 +89,40 @@ def generate_follow_up(prompt, tokenizer, model, max_length=200):
     return clean_output(response)
 
 
+def claude_follow_up(prompt):
+    msgs = []
+    msgs.append({"role": "user", "content": f"<text>{prompt}</text>"})
+    prompt = "You are role playing a game of telephone, in which your task is to repeat a piece of text, indicated by <text></text> tags. Your role is to attempt to repeat the paragraph, though you misremember phrases, sometimes retaining their approximate meaning but changing the words, sometimes changing the meaning quite a bit but retaining some of the texture. Aim for a natural tone. Do NOT include any extra commentary or explanation."
+
+
+    outcome = call_model(
+        client, 
+        msgs, 
+        prompt, 
+        temperature=1
+    )
+
+    return outcome.content[0].text
+
+
+def claude_rhyming_follow_up(prompt):
+    msgs = []
+    msgs.append({"role": "user", "content": f"<text>{prompt}</text>"})
+    prompt = "You are role playing a game of telephone, in which your task is to repeat a piece of text, indicated by <text></text> tags. In this instance, make your response rhyming."
+
+    outcome = call_model(
+        client, 
+        msgs, 
+        prompt, 
+        temperature=1
+    )
+
+    return outcome
+
+
 def generate_initial_response(prompt, tokenizer, model, max_length=150):
-    full_prompt = f"You are role playing a conversation. You should respond to questions in full sentences, in a paragraph between 100-200 words in length. Do not include descriptive or categorical phrases, like 'Settings and Characters', 'Interpretation' or 'Feelings and Thoughts'. Do not include references or information in brackets. Question: {prompt}\n"
+    # full_prompt = f"You are role playing a conversation. You should respond to questions in full sentences, in a paragraph between 100-200 words in length. Do not include descriptive or categorical phrases, like 'Settings and Characters', 'Interpretation' or 'Feelings and Thoughts'. Do not include references or information in brackets. Question: {prompt}\n"
+    full_prompt = f"Question: {prompt} Bot:\n"
     input_ids = tokenizer.encode(full_prompt, return_tensors="pt")
 
     with torch.no_grad():
@@ -124,6 +163,16 @@ if __name__ == "__main__":
         if user_input.lower() in ["exit", "quit"]:
             break
         initial_response = generate_initial_response(user_input, tokenizer, model)
-        print("Bot:", initial_response)
-        # res_2 = generate_follow_up(initial_response, tokenizer, model)
-        # print("Bot:", res_2)
+        print("\ninitial response:", initial_response)
+
+        # generate the follow up using the dreambank dataset
+        follow_1 = generate_follow_up(initial_response, tokenizer, model)
+        print("\ndream dataset follow up:", follow_1)
+
+        # generate the follow up using claude api
+        follow_2 = claude_follow_up(initial_response)
+        print("\nclaude initial follow up:", follow_2)
+        follow_3 = claude_follow_up(follow_2)
+        print("\nclaude second follow up:", follow_3)
+        follow_4 = claude_follow_up(follow_3)
+        print("\nclaude third follow up:", follow_4)
