@@ -4,7 +4,7 @@ An llm powered chatbot
 
 ## Phase 1: Play with model parameters.
 
-Using both models, try different combinations of parameters to produce the desired output for both models.
+Using both models, try different combinations of parameters to produce the desired output for both models. Both of this models can be found in the drive folder 
 
 - `/dream_gpt2`
 - `/email_gpt2`
