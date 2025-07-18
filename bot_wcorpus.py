@@ -85,7 +85,6 @@ def run_chat(model_path, prompt_file=None, output_file=None):
             print(f"DreamBot: {response}")
             save_interaction(prompt, response, output_file)
 
-# 🔌 Entry point
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument( "--model_path", type=str, default="./dream_gpt2",
