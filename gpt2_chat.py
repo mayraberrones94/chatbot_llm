@@ -148,16 +148,29 @@ def generate_initial_response(prompt, tokenizer, model, max_length=150):
 
     return clean_output(response)
 
-if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Usage: python chatbot.py <model_path>")
-        sys.exit(1)
 
-    model_path = sys.argv[1] #This accepts the whole folder with the output of the training from gpt
-    tokenizer, model = load_model(model_path)
+def run_text_queries():
+    with open('questions.txt') as questions:
+        for question in questions:
+            print("\nquestion:", question)
 
-    print("Chatbot is ready! Type 'exit' to quit.\n")
+            initial_response = generate_initial_response(question, tokenizer, model)
+            print("\ninitial response:", initial_response)
 
+            # generate the follow up using the dreambank dataset
+            follow_1 = generate_follow_up(initial_response, tokenizer, model)
+            print("\ndream dataset follow up:", follow_1)
+
+            # generate the follow up using claude api
+            follow_2 = claude_follow_up(initial_response)
+            print("\nclaude initial follow up:", follow_2)
+            follow_3 = claude_follow_up(follow_2)
+            print("\nclaude second follow up:", follow_3)
+            follow_4 = claude_follow_up(follow_3)
+            print("\nclaude third follow up:", follow_4)
+
+
+def run_query_user_mode():
     while True:
         user_input = input("User: ") #Ctrl + C for emergencies
         if user_input.lower() in ["exit", "quit"]:
@@ -176,3 +189,21 @@ if __name__ == "__main__":
         print("\nclaude second follow up:", follow_3)
         follow_4 = claude_follow_up(follow_3)
         print("\nclaude third follow up:", follow_4)
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print("Usage: python chatbot.py <model_path>")
+        sys.exit(1)
+
+    model_path = sys.argv[1] #This accepts the whole folder with the output of the training from gpt
+    mode = sys.argv[2]
+    tokenizer, model = load_model(model_path)
+
+    if mode == 'user':
+        print("Chatbot is ready! Type 'exit' to quit.\n")
+        run_query_user_mode()
+
+    else:
+        run_text_queries()
+
+
