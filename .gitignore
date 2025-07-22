@@ -9,3 +9,5 @@ emails_token.csv
 ._emails.csv
 /dream_gpt2
 /email_gpt2
+.env
+
