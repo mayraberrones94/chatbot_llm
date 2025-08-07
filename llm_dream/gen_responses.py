@@ -30,7 +30,7 @@ def generate_initial_response(prompt, tokenizer, model, device, max_length=150):
     return clean_output(decoded[len(full_prompt):])
 
 def generate_follow_up(prompt, tokenizer, model, device, max_length=200):
-    full_prompt = (f"We are playing a game of telephone -- please attempt to repeat the text that appears in the <text> tags. Do NOT include any explanations, dialogue, or additional text: <text>{prompt}</text>.")
+    full_prompt = (f"We are playing a game of telephone -- please attempt to repeat the text that appears in the <text>: <text>{prompt}</text>.")
 
     input_ids = tokenizer.encode(full_prompt, return_tensors="pt").to(device)
 
@@ -61,10 +61,10 @@ def run_query_user_mode(tokenizer, model, device):
         print(f"Response: {response}")
         follow_1 = generate_follow_up(response, tokenizer, model, device)
         print(f"Follow-up 1: {follow_1}")
-        #follow_2 = generate_follow_up(follow_1, tokenizer, model, device)
-        #print(f"Follow-up 2: {follow_2}")
-        #follow_3 = generate_follow_up(follow_2, tokenizer, model, device)
-        #print(f"Follow-up 3: {follow_3}")
+        follow_2 = generate_follow_up(follow_1, tokenizer, model, device)
+        print(f"Follow-up 2: {follow_2}")
+        follow_3 = generate_follow_up(follow_2, tokenizer, model, device)
+        print(f"Follow-up 3: {follow_3}")
 
 def run_text_queries(tokenizer, model, device):
     with open('questions.txt') as questions:
