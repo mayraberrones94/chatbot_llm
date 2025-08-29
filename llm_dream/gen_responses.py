@@ -2,6 +2,7 @@
 
 from transformers import GPT2Tokenizer, GPT2LMHeadModel
 import torch
+import pandas as pd
 import sys
 import re
 import os
@@ -66,16 +67,28 @@ def run_query_user_mode(tokenizer, model, device):
         follow_3 = generate_follow_up(follow_2, tokenizer, model, device)
         print(f"Follow-up 3: {follow_3}")
 
-def run_text_queries(tokenizer, model, device):
-    with open('questions.txt') as questions:
-        for question in questions:
-            print("\nquestion:", question)
+def run_text_queries(tokenizer, model, device, csv_path, output_csv_path):
+    """
+    Reads a CSV with seed_text, followup_1, followup_2, followup_3 columns.
+    Generates followups for each seed_text and saves them in the CSV.
+    """
 
-            initial_response = generate_initial_response(question, tokenizer, model, device)
-            print("\ninitial response:", initial_response)
+    df = pd.read_csv(csv_path)
+    required_cols = ["seed_script", "followup_1", "followup_2", "followup_3"]
+    for col in required_cols:
+        if col not in df.columns:
+            raise ValueError(f"CSV must contain column: {col}")
+    for idx, row in df.iterrows():
+        seed = str(row["seed_script"]).strip()
+        if not seed:
+            continue  # skip empty seed_text
+        follow_1 = generate_follow_up(seed, tokenizer, model, device)
+        follow_2 = generate_follow_up(follow_1, tokenizer, model, device)
+        follow_3 = generate_follow_up(follow_2, tokenizer, model, device)
+        df.at[idx, "followup_1"] = follow_1
+        df.at[idx, "followup_2"] = follow_2
+        df.at[idx, "followup_3"] = follow_3
 
-            # generate the follow up using the dreambank dataset
-            follow_1 = generate_follow_up(initial_response, tokenizer, model)
-            print("\ndream dataset follow up:", follow_1)
+        df.to_csv(output_csv_path, index=False, encoding="utf-8") #checkpoint
 
 
