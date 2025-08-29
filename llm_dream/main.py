@@ -21,7 +21,10 @@ def load_model(model_path):
     model.eval()
     model.to(device)
     return tokenizer, model, device
- 
+
+'''
+(agnes_llm) mberrones@mberrones-Precision-5820-Tower-X-Series:~/Documents/llm_dream$ python main.py gpt2_claude_finetuned/ responses_followups.csv response_updated.csv
+'''
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Usage: python chatbot.py <model_path>")
