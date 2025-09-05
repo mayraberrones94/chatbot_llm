@@ -12,7 +12,6 @@ import anthropic
 load_dotenv()
 
 client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
-model_path="dream_gpt2/"
 
 def load_model(model_path, device='cpu'):
     tokenizer = GPT2Tokenizer.from_pretrained(model_path)
@@ -27,7 +26,12 @@ def load_model(model_path, device='cpu'):
 
     return tokenizer, model
 
-tokenizer, model = load_model(model_path)
+dream_model_path="dream_gpt2/"
+dream_tokenizer, dream_model = load_model(dream_model_path)
+
+email_model_path="dream_email/"
+email_tokenizer, email_model = load_model(email_model_path)
+
 
 app = Flask(__name__)
 app.app_context().push()
@@ -41,6 +45,7 @@ TEMPLATE = """
     <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
+    <div id="main">
     <h1>Prompt Testing</h1>
     <div id="form-container">
         <form id="prompt-form" method="get">
@@ -48,6 +53,12 @@ TEMPLATE = """
         <label for="initial-prompt">Initial Question:</label>
         <input type="text" value="when did it begin exactly?" name="initial-prompt" />
 
+
+            <label for="model">Model:</label>
+            <select id="model" name="model">
+                <option value="dream_gpt2">Dream + GPT2</option>
+                <option value="dream_email" selected>Dream + Email + GPT2</option>
+            </select>
 
             <label for="mode">Follow up Mode:</label>
             <select id="mode" name="mode">
@@ -60,6 +71,7 @@ TEMPLATE = """
                 <label for="single-prompt">Prompt:</label>
                 <textarea id="single-prompt" name="single-prompt" rows="4" cols="50"
                     placeholder="Enter your full prompt here..."></textarea>
+                <p> Note: the phrase "Separate each generated text with an underscore." is added onto this prompt on the backend to allow the single response of the model to be split into multiple phrases. You shouldn't need to add any additional separators. </p>
             </div>
 
             <!-- Multiple prompts container -->
@@ -82,6 +94,7 @@ TEMPLATE = """
     <h2>Results</h2>
     <div id="results">
     </div>
+    </div>
 
     <script>
         const container = document.getElementById("results");
@@ -98,6 +111,7 @@ TEMPLATE = """
                 // Single prompt mode: just take the textarea
                 promptData = {
                     mode: "single",
+                    model: form.elements["model"].value,
                     initial: form.elements["initial-prompt"].value,
                     prompt: form.elements["single-prompt"].value
                 };
@@ -105,6 +119,7 @@ TEMPLATE = """
                 // Multiple prompt mode: gather all inputs
                 promptData = {
                     mode: "multiple",
+                    model: form.elements["model"].value,
                     initial: form.elements["initial-prompt"].value,
                     prompts: [
                         form.elements["claude-p1"].value,
@@ -255,13 +270,30 @@ def stream():
     def generate():
         responses = []
         initial = prompt_data.get("initial", "")
+        model = dream_model
+        tokenizer = dream_tokenizer
+
+        if prompt_data.get("model") == "dream_gpt2":
+            print('setting model for dream_gpt2')
+            model = dream_model
+            tokenizer = dream_tokenizer
+
+        elif prompt_data.get("model") == "dream_email":
+            print('setting model for dream_email')
+            model = email_model
+            tokenizer = email_tokenizer
+
+        else:
+            return "Unknown model", 400
+
         responses.append(generate_initial_response(initial, tokenizer, model))
         yield f"data:{json.dumps(responses)}\n\n"
 
-
         if prompt_data.get("mode") == "single":
             prompt = prompt_data.get("prompt")
-            responses.append(claude_follow_up(prompt, responses[0]))
+            res = claude_follow_up(prompt + " Separate each generated text with an underscore.", responses[0])
+            res_list = res.split["_"]
+            responses.append()
             yield f"data:{json.dumps(responses)}\n\n"
 
         elif prompt_data.get("mode") == "multiple":
@@ -280,7 +312,6 @@ def stream():
 @app.route("/", methods=["GET"])
 def index():
     return render_template_string(TEMPLATE)
-
 
 if __name__ == "__main__":
     app.run(port=5050)

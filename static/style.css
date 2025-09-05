@@ -1,8 +1,13 @@
 body {
-	background-color: lightblue;
+	background-color: lightcyan;
+	font-family: helvetica;
 }
 
-input, textarea {
+input, textarea, select {
 	display: block;
 	margin-bottom: 20px;
+}
+
+#main {
+	max-width: 600px;
 }

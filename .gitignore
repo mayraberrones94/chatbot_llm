@@ -11,3 +11,4 @@ emails_token.csv
 /email_gpt2
 .env
 /dream_email
+__pycache__/
