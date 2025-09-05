@@ -1,0 +1,8 @@
+body {
+	background-color: lightblue;
+}
+
+input, textarea {
+	display: block;
+	margin-bottom: 20px;
+}

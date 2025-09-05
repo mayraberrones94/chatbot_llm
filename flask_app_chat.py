@@ -10,7 +10,24 @@ from dotenv import load_dotenv
 from claude_utils import call_model
 import anthropic
 load_dotenv()
+
 client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+model_path="dream_gpt2/"
+
+def load_model(model_path, device='cpu'):
+    tokenizer = GPT2Tokenizer.from_pretrained(model_path)
+    model = GPT2LMHeadModel.from_pretrained(model_path)
+
+    tokenizer.add_special_tokens({'pad_token': '[PAD]'})
+    model.resize_token_embeddings(len(tokenizer))
+    model.config.pad_token_id = tokenizer.pad_token_id
+
+    model.eval()
+    model.to(device)
+
+    return tokenizer, model
+
+tokenizer, model = load_model(model_path)
 
 app = Flask(__name__)
 app.app_context().push()
@@ -27,15 +44,43 @@ TEMPLATE = """
     <h1>Prompt Testing</h1>
     <div id="form-container">
         <form id="prompt-form" method="get">
-            <label>Prompt:</label>
-            <input type="text" value="prompt" name="prompt" />
+
+        <label for="initial-prompt">Initial Question:</label>
+        <input type="text" value="when did it begin exactly?" name="initial-prompt" />
+
+
+            <label for="mode">Follow up Mode:</label>
+            <select id="mode" name="mode">
+                <option value="single">Single Prompt</option>
+                <option value="multiple" selected>Multiple Prompts</option>
             </select>
+
+            <!-- Single prompts container -->
+            <div id="single-prompt-section" style="display: none; margin-top: 10px;">
+                <label for="single-prompt">Prompt:</label>
+                <textarea id="single-prompt" name="single-prompt" rows="4" cols="50"
+                    placeholder="Enter your full prompt here..."></textarea>
+            </div>
+
+            <!-- Multiple prompts container -->
+            <div id="multiple-prompts-section" style="margin-top: 10px;">
+                <label for="claude-p1">Follow Up Prompt 1:</label>
+                <textarea id="claude-p1" name="claude-p1" rows="4" cols="50"
+                    placeholder="You are role playing a game of telephone, in which your task is to repeat a piece of text, indicated by <text></text> tags. Your role is to attempt to repeat the paragraph, though you misremember phrases, sometimes retaining their approximate meaning but changing the words, sometimes changing the meaning quite a bit but retaining some of the texture. Aim for a natural tone. Do NOT include any extra commentary or explanation."></textarea>
+
+                <label for="claude-p2">Follow Up Prompt 2:</label>
+                <textarea id="claude-p2" name="claude-p2" rows="4" cols="50"></textarea>
+
+                <label for="claude-p3">Follow Up Prompt 3:</label>
+                <textarea id="claude-p3" name="claude-p3" rows="4" cols="50"></textarea>
+            </div>
+
             <button type="submit">submit</button>
         </form>
     </div>
 
+    <h2>Results</h2>
     <div id="results">
-        <h2>Results</h2>
     </div>
 
     <script>
@@ -46,15 +91,40 @@ TEMPLATE = """
             e.preventDefault(); // prevent page reload
             container.innerHTML = ""; // clear previous responses
 
-            const prompt = form.elements["prompt"].value;
-            const evtSource = new EventSource(`/stream?prompt=${encodeURIComponent(prompt)}`);
+            const mode = form.elements["mode"].value;
+            let promptData;
+
+            if (mode === "single") {
+                // Single prompt mode: just take the textarea
+                promptData = {
+                    mode: "single",
+                    initial: form.elements["initial-prompt"].value,
+                    prompt: form.elements["single-prompt"].value
+                };
+            } else {
+                // Multiple prompt mode: gather all inputs
+                promptData = {
+                    mode: "multiple",
+                    initial: form.elements["initial-prompt"].value,
+                    prompts: [
+                        form.elements["claude-p1"].value,
+                        form.elements["claude-p2"].value,
+                        form.elements["claude-p3"].value
+                    ]
+                };
+            }
+
+            // Open SSE stream with JSON payload encoded in query string
+            const evtSource = new EventSource(
+                `/stream?data=${encodeURIComponent(JSON.stringify(promptData))}`
+            );
 
             evtSource.onmessage = function(event) {
                 const responses = JSON.parse(event.data);
                 container.innerHTML = ""; // replace previous content
-                responses.forEach((r, i) => {
+                responses.forEach((r) => {
                     const p = document.createElement("p");
-                    p.textContent = `${r}`;
+                    p.textContent = r;
                     container.appendChild(p);
                 });
             };
@@ -63,6 +133,26 @@ TEMPLATE = """
                 evtSource.close(); // close stream on error
             };
         });
+
+        const modeSelect = document.getElementById("mode");
+        const singleSection = document.getElementById("single-prompt-section");
+        const multipleSection = document.getElementById("multiple-prompts-section");
+
+        function toggleSections() {
+            if (modeSelect.value === "single") {
+                singleSection.style.display = "block";
+                multipleSection.style.display = "none";
+            } else {
+                singleSection.style.display = "none";
+                multipleSection.style.display = "block";
+            }
+        }
+
+        // Run on page load (in case default selection is not "multiple")
+        toggleSections();
+
+        // Listen for changes
+        modeSelect.addEventListener("change", toggleSections);
     </script>
 </body>
 </html>
@@ -106,52 +196,10 @@ def clean_output(text):
 
     return new_text.strip().lstrip()
 
-def load_model(model_path, device='cpu'):
-    tokenizer = GPT2Tokenizer.from_pretrained(model_path)
-    model = GPT2LMHeadModel.from_pretrained(model_path)
 
-    tokenizer.add_special_tokens({'pad_token': '[PAD]'})
-    model.resize_token_embeddings(len(tokenizer))
-    model.config.pad_token_id = tokenizer.pad_token_id
-
-    model.eval()
-    model.to(device)
-
-    return tokenizer, model
-
-# this is a call to the dream model
-def generate_follow_up(prompt, tokenizer, model, max_length=200):
-    full_prompt = f"We are playing a game of telephone -- please attempt to repeat the text that appears in the <text> tags. Do NOT include any explanations, dialogue, or additional text: <text>{prompt}</text>.\nRepeat now:"
-    
-    # print('full prompt is', full_prompt)
-    input_ids = tokenizer.encode(full_prompt, return_tensors="pt")
-
-    with torch.no_grad():
-        output = model.generate(
-            input_ids,
-            max_length=max_length,
-            num_return_sequences=1,
-            pad_token_id=tokenizer.eos_token_id,
-            do_sample=False,
-            repetition_penalty=1.2
-        )
-
-    decoded_output = tokenizer.decode(output[0], skip_special_tokens=True)
-
-    # Extract the part after "Bot:"
-    if "Bot:" in decoded_output:
-        response = decoded_output.split("Bot:")[-1].strip()
-    else:
-        response = decoded_output[len(full_prompt):].strip()
-
-    return clean_output(response)
-
-
-def claude_follow_up(prompt):
+def claude_follow_up(prompt, previous_text):
     msgs = []
-    msgs.append({"role": "user", "content": f"<text>{prompt}</text>"})
-    prompt = "You are role playing a game of telephone, in which your task is to repeat a piece of text, indicated by <text></text> tags. Your role is to attempt to repeat the paragraph, though you misremember phrases, sometimes retaining their approximate meaning but changing the words, sometimes changing the meaning quite a bit but retaining some of the texture. Aim for a natural tone. Do NOT include any extra commentary or explanation."
-
+    msgs.append({"role": "user", "content": f"<text>{previous_text}</text>"})
 
     outcome = call_model(
         client, 
@@ -193,26 +241,38 @@ def generate_initial_response(prompt, tokenizer, model, max_length=150):
 
 @app.route("/stream")
 def stream():
-    user_input = request.args.get("prompt", "when did it begin exactly?")
+    raw_data = request.args.get("data")
+
+    if raw_data:
+        try:
+            prompt_data = json.loads(raw_data)
+        except json.JSONDecodeError:
+            return "Invalid JSON in 'data' parameter", 400
+
+    else:
+        return "no data", 400
 
     def generate():
         responses = []
-
-        # Step 1
-        responses.append(generate_initial_response(user_input, tokenizer, model))
+        initial = prompt_data.get("initial", "")
+        responses.append(generate_initial_response(initial, tokenizer, model))
         yield f"data:{json.dumps(responses)}\n\n"
 
-        # Step 2
-        responses.append(claude_follow_up(responses[0]))
-        yield f"data:{json.dumps(responses)}\n\n"
 
-        # Step 3
-        responses.append(claude_follow_up(responses[1]))
-        yield f"data:{json.dumps(responses)}\n\n"
+        if prompt_data.get("mode") == "single":
+            prompt = prompt_data.get("prompt")
+            responses.append(claude_follow_up(prompt, responses[0]))
+            yield f"data:{json.dumps(responses)}\n\n"
 
-        # Step 4
-        responses.append(claude_follow_up(responses[2]))
-        yield f"data:{json.dumps(responses)}\n\n"
+        elif prompt_data.get("mode") == "multiple":
+            prompts = prompt_data.get("prompts", [])
+
+            for i, prompt in enumerate(prompts):
+                responses.append(claude_follow_up(prompt, responses[i]))
+                yield f"data:{json.dumps(responses)}\n\n"
+
+        else:
+            return "Unknown mode", 400
 
     return Response(generate(), mimetype="text/event-stream")
 
@@ -223,7 +283,4 @@ def index():
 
 
 if __name__ == "__main__":
-    model_path="dream_gpt2/"
-    tokenizer, model = load_model(model_path)
-
     app.run(port=5050)
