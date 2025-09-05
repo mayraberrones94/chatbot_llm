@@ -12,6 +12,19 @@ import anthropic
 load_dotenv()
 
 client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+PASSWORD = "photocopier!"
+
+def check_auth(password):
+    """Check if the provided password is correct."""
+    return password == PASSWORD
+
+def authenticate():
+    """Sends a 401 response that enables basic auth"""
+    return Response(
+        'Could not verify your access level for that URL.\n'
+        'You have to provide the correct password', 401,
+        {'WWW-Authenticate': 'Basic realm="Login Required"'}
+    )
 
 def load_model(model_path, device='cpu'):
     tokenizer = GPT2Tokenizer.from_pretrained(model_path)
@@ -310,6 +323,11 @@ def stream():
 
     return Response(generate(), mimetype="text/event-stream")
 
+@app.before_request
+def require_password():
+    auth = request.authorization
+    if not auth or not check_auth(auth.password):
+        return authenticate()
 
 @app.route("/", methods=["GET"])
 def index():
