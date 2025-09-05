@@ -137,9 +137,10 @@ TEMPLATE = """
             evtSource.onmessage = function(event) {
                 const responses = JSON.parse(event.data);
                 container.innerHTML = ""; // replace previous content
-                responses.forEach((r) => {
+                responses.forEach((r, i) => {
                     const p = document.createElement("p");
-                    p.textContent = r;
+                    spk_num = i%2 == 0 ? "1" : "2"
+                    p.innerHTML = "<b>Speaker " + spk_num + ":</b> " + r;
                     container.appendChild(p);
                 });
             };
@@ -230,29 +231,32 @@ def generate_initial_response(prompt, tokenizer, model, max_length=150):
     # full_prompt = f"You are role playing a conversation. You should respond to questions in full sentences, in a paragraph between 100-200 words in length. Do not include descriptive or categorical phrases, like 'Settings and Characters', 'Interpretation' or 'Feelings and Thoughts'. Do not include references or information in brackets. Question: {prompt}\n"
     full_prompt = f"Question: {prompt} Bot:\n"
     input_ids = tokenizer.encode(full_prompt, return_tensors="pt")
+    final_res = ""
 
-    with torch.no_grad():
-        output = model.generate(
-            input_ids,
-            max_length=max_length,
-            num_return_sequences=2,
-            pad_token_id=tokenizer.eos_token_id,
-            do_sample=True,
-            top_k=50,
-            top_p=0.95,
-            temperature=0.4,
-            repetition_penalty=1.5
-        )
+    while len(final_res) < 20:
+        with torch.no_grad():
+            output = model.generate(
+                input_ids,
+                max_length=max_length,
+                num_return_sequences=2,
+                pad_token_id=tokenizer.eos_token_id,
+                do_sample=True,
+                top_k=50,
+                top_p=0.95,
+                temperature=0.4,
+                repetition_penalty=1.5
+            )
 
-    decoded_output = tokenizer.decode(output[0], skip_special_tokens=True)
+        decoded_output = tokenizer.decode(output[0], skip_special_tokens=True)
 
-    # Extract the part after "Bot:"
-    if "Bot:" in decoded_output:
-        response = decoded_output.split("Bot:")[-1].strip()
-    else:
-        response = decoded_output[len(full_prompt):].strip()
+        # Extract the part after "Bot:"
+        if "Bot:" in decoded_output:
+            response = decoded_output.split("Bot:")[-1].strip()
+        else:
+            response = decoded_output[len(full_prompt):].strip()
+        final_res = clean_output(response)
 
-    return clean_output(response)
+    return final_res
 
 @app.route("/stream")
 def stream():
@@ -274,12 +278,10 @@ def stream():
         tokenizer = dream_tokenizer
 
         if prompt_data.get("model") == "dream_gpt2":
-            print('setting model for dream_gpt2')
             model = dream_model
             tokenizer = dream_tokenizer
 
         elif prompt_data.get("model") == "dream_email":
-            print('setting model for dream_email')
             model = email_model
             tokenizer = email_tokenizer
 
@@ -292,8 +294,8 @@ def stream():
         if prompt_data.get("mode") == "single":
             prompt = prompt_data.get("prompt")
             res = claude_follow_up(prompt + " Separate each generated text with an underscore.", responses[0])
-            res_list = res.split["_"]
-            responses.append()
+            res_list = res.split("_")
+            responses = responses + res_list
             yield f"data:{json.dumps(responses)}\n\n"
 
         elif prompt_data.get("mode") == "multiple":
