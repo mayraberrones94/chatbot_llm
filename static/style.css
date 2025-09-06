@@ -1,13 +1,33 @@
 body {
-	background-color: lightcyan;
+	background-color: lightblue;
 	font-family: helvetica;
 }
 
-input, textarea, select {
+input, select {
 	display: block;
 	margin-bottom: 20px;
 }
 
+label {
+	display: block;
+}
+
+.prompt-wrapper {
+	margin-bottom: 20px;
+}
+
 #main {
-	max-width: 600px;
+	display: flex;
+	flex-direction: row;
+}
+
+#main > div {
+	width: 600px;
+}
+
+#form-container, #results {
+	border-left: 1px solid black;
+	padding: 10px;
+	margin-right: 40px;
+	min-height: 400px;
 }

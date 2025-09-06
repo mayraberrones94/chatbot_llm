@@ -58,132 +58,64 @@ TEMPLATE = """
     <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
-    <div id="main">
     <h1>Prompt Testing</h1>
-    <div id="form-container">
-        <form id="prompt-form" method="get">
+    <div id="main">
+        <div>
+        <h2>Setup</h2>
+        <div id="form-container">
+            <form id="prompt-form" method="get">
 
-        <label for="initial-prompt">Initial Question:</label>
-        <input type="text" value="when did it begin exactly?" name="initial-prompt" />
+            <label for="initial-prompt">Initial Question:</label>
+            <input type="text" value="when did it begin exactly?" name="initial-prompt" />
+
+                <label for="model">Model:</label>
+                <select id="model" name="model">
+                    <option value="dream_gpt2">Dream + GPT2</option>
+                    <option value="dream_email" selected>Dream + Email + GPT2</option>
+                </select>
+
+                <label for="mode">Follow up Mode:</label>
+                <select id="mode" name="mode">
+                    <option value="single">Single Prompt</option>
+                    <option value="multiple" selected>Multiple Prompts</option>
+                </select>
+
+                <!-- Single prompts container -->
+                <div id="single-prompt-section" style="display: none; margin-top: 10px;">
+                    <div class="prompt-wrapper">
+                        <label for="single-prompt">Prompt:</label>
+                        <textarea id="single-prompt" name="single-prompt" rows="4" cols="50"
+                            placeholder="Enter your full prompt here..."></textarea>
+                        <p> Note: the phrase "Separate each generated text with an underscore." is added onto this prompt on the backend to allow the single response of the model to be split into multiple phrases. You shouldn't need to add any additional separators. </p>
+                    </div>
+                </div>
+
+                <!-- Multiple prompts container -->
+                <div id="multiple-prompts-section" style="margin-top: 10px;">
+                    <div id="follow-up">
+                        <div class="prompt-wrapper">
+                        <label for="claude-p1">Follow Up Prompt 1:</label>
+                        <textarea id="claude-p1" name="claude-prompts" rows="4" cols="50"
+                            placeholder="You are role playing a game of telephone, in which your task is to repeat a piece of text, indicated by <text></text> tags. Your role is to attempt to repeat the paragraph, though you misremember phrases, sometimes retaining their approximate meaning but changing the words, sometimes changing the meaning quite a bit but retaining some of the texture. Aim for a natural tone. Do NOT include any extra commentary or explanation."></textarea>
+                        </div>
+                    </div>
+                    <button type="button" id="add-prompt-btn">+ Add Follow-Up Prompt</button>
+                </div>
 
 
-            <label for="model">Model:</label>
-            <select id="model" name="model">
-                <option value="dream_gpt2">Dream + GPT2</option>
-                <option value="dream_email" selected>Dream + Email + GPT2</option>
-            </select>
+                <button type="submit">submit</button>
+            </form>
+        </div>
+        </div>
 
-            <label for="mode">Follow up Mode:</label>
-            <select id="mode" name="mode">
-                <option value="single">Single Prompt</option>
-                <option value="multiple" selected>Multiple Prompts</option>
-            </select>
-
-            <!-- Single prompts container -->
-            <div id="single-prompt-section" style="display: none; margin-top: 10px;">
-                <label for="single-prompt">Prompt:</label>
-                <textarea id="single-prompt" name="single-prompt" rows="4" cols="50"
-                    placeholder="Enter your full prompt here..."></textarea>
-                <p> Note: the phrase "Separate each generated text with an underscore." is added onto this prompt on the backend to allow the single response of the model to be split into multiple phrases. You shouldn't need to add any additional separators. </p>
+        <div>
+            <h2>Results</h2>
+            <div id="results">
             </div>
-
-            <!-- Multiple prompts container -->
-            <div id="multiple-prompts-section" style="margin-top: 10px;">
-                <label for="claude-p1">Follow Up Prompt 1:</label>
-                <textarea id="claude-p1" name="claude-p1" rows="4" cols="50"
-                    placeholder="You are role playing a game of telephone, in which your task is to repeat a piece of text, indicated by <text></text> tags. Your role is to attempt to repeat the paragraph, though you misremember phrases, sometimes retaining their approximate meaning but changing the words, sometimes changing the meaning quite a bit but retaining some of the texture. Aim for a natural tone. Do NOT include any extra commentary or explanation."></textarea>
-
-                <label for="claude-p2">Follow Up Prompt 2:</label>
-                <textarea id="claude-p2" name="claude-p2" rows="4" cols="50"></textarea>
-
-                <label for="claude-p3">Follow Up Prompt 3:</label>
-                <textarea id="claude-p3" name="claude-p3" rows="4" cols="50"></textarea>
-            </div>
-
-            <button type="submit">submit</button>
-        </form>
+        </div>
     </div>
-
-    <h2>Results</h2>
-    <div id="results">
-    </div>
-    </div>
-
-    <script>
-        const container = document.getElementById("results");
-        const form = document.getElementById("prompt-form");
-
-        form.addEventListener("submit", function(e) {
-            e.preventDefault(); // prevent page reload
-            container.innerHTML = ""; // clear previous responses
-
-            const mode = form.elements["mode"].value;
-            let promptData;
-
-            if (mode === "single") {
-                // Single prompt mode: just take the textarea
-                promptData = {
-                    mode: "single",
-                    model: form.elements["model"].value,
-                    initial: form.elements["initial-prompt"].value,
-                    prompt: form.elements["single-prompt"].value
-                };
-            } else {
-                // Multiple prompt mode: gather all inputs
-                promptData = {
-                    mode: "multiple",
-                    model: form.elements["model"].value,
-                    initial: form.elements["initial-prompt"].value,
-                    prompts: [
-                        form.elements["claude-p1"].value,
-                        form.elements["claude-p2"].value,
-                        form.elements["claude-p3"].value
-                    ]
-                };
-            }
-
-            // Open SSE stream with JSON payload encoded in query string
-            const evtSource = new EventSource(
-                `/stream?data=${encodeURIComponent(JSON.stringify(promptData))}`
-            );
-
-            evtSource.onmessage = function(event) {
-                const responses = JSON.parse(event.data);
-                container.innerHTML = ""; // replace previous content
-                responses.forEach((r, i) => {
-                    const p = document.createElement("p");
-                    spk_num = i%2 == 0 ? "1" : "2"
-                    p.innerHTML = "<b>Speaker " + spk_num + ":</b> " + r;
-                    container.appendChild(p);
-                });
-            };
-
-            evtSource.onerror = function() {
-                evtSource.close(); // close stream on error
-            };
-        });
-
-        const modeSelect = document.getElementById("mode");
-        const singleSection = document.getElementById("single-prompt-section");
-        const multipleSection = document.getElementById("multiple-prompts-section");
-
-        function toggleSections() {
-            if (modeSelect.value === "single") {
-                singleSection.style.display = "block";
-                multipleSection.style.display = "none";
-            } else {
-                singleSection.style.display = "none";
-                multipleSection.style.display = "block";
-            }
-        }
-
-        // Run on page load (in case default selection is not "multiple")
-        toggleSections();
-
-        // Listen for changes
-        modeSelect.addEventListener("change", toggleSections);
-    </script>
 </body>
+    <script src="/static/main.js"></script>
 </html>
 """
 
