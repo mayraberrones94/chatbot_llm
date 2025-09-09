@@ -12,3 +12,5 @@ emails_token.csv
 .env
 /dream_email
 __pycache__/
+dialogues.db
+
