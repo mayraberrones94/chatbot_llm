@@ -9,6 +9,7 @@ import json
 from dotenv import load_dotenv
 from claude_utils import call_model
 import anthropic
+import database_utils
 load_dotenv()
 
 client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
@@ -48,6 +49,7 @@ email_tokenizer, email_model = load_model(email_model_path)
 
 app = Flask(__name__)
 app.app_context().push()
+app.teardown_appcontext(database_utils.close_db)
 
 # Template
 TEMPLATE = """
@@ -111,6 +113,11 @@ TEMPLATE = """
         <div>
             <h2>Results</h2>
             <div id="results">
+                <form id="db-form">
+                    <div id="db-form-inner">
+                    </div>
+                    <button type="submit">submit</button>
+                </form>
             </div>
         </div>
     </div>
@@ -255,11 +262,32 @@ def stream():
 
     return Response(generate(), mimetype="text/event-stream")
 
+
+@app.route("/init")
+def init():
+    database_utils.init_db(app)
+    return "Database initialized!"
+
 @app.before_request
 def require_password():
     auth = request.authorization
     if not auth or not check_auth(auth.password):
         return authenticate()
+
+@app.route("/insert")
+def example():
+    raw_data = request.args.get("data")
+    print("got req, raw data is", raw_data)
+    dialogue_id = database_utils.insert_dialogue(
+        prompt="What's your favorite color?",
+        initial_response="I think it's blue.",
+        blocks=[
+            {"speaker": "A", "text": "I like blue because it's calming."},
+            {"speaker": "B", "text": "Interesting, I prefer red for its energy."},
+            {"speaker": "A", "text": "Makes sense, red can be very powerful."},
+        ],
+    )
+    return f"Inserted dialogue {dialogue_id}"
 
 @app.route("/", methods=["GET"])
 def index():

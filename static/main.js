@@ -7,41 +7,41 @@ const followupContainer = document.getElementById("follow-up");
 const addPromptBtn = document.getElementById("add-prompt-btn");
 let promptCount = 1; // start at 1
 
-    addPromptBtn.addEventListener("click", () => {
-        promptCount++;
+addPromptBtn.addEventListener("click", () => {
+    promptCount++;
 
-        // wrapper for prompt + remove button
-        const wrapper = document.createElement("div");
-        wrapper.className = "prompt-wrapper";
+    // wrapper for prompt + remove button
+    const wrapper = document.createElement("div");
+    wrapper.className = "prompt-wrapper";
 
-        const label = document.createElement("label");
-        label.setAttribute("for", `claude-p${promptCount}`);
-        label.textContent = `Follow Up Prompt ${promptCount}:`;
+    const label = document.createElement("label");
+    label.setAttribute("for", `claude-p${promptCount}`);
+    label.textContent = `Follow Up Prompt ${promptCount}:`;
 
-        const textarea = document.createElement("textarea");
-        textarea.id = `claude-p${promptCount}`;
-        textarea.name = "claude-prompts"; // consistent name for all
-        textarea.rows = 4;
-        textarea.cols = 50;
+    const textarea = document.createElement("textarea");
+    textarea.id = `claude-p${promptCount}`;
+    textarea.name = "claude-prompts"; // consistent name for all
+    textarea.rows = 4;
+    textarea.cols = 50;
 
-        const removeBtn = document.createElement("button");
-        removeBtn.type = "button";
-        removeBtn.textContent = "- remove";
-        removeBtn.style.marginLeft = "10px";
-        removeBtn.addEventListener("click", () => {
-            followupContainer.removeChild(wrapper);
-        });
-
-        wrapper.appendChild(label);
-        wrapper.appendChild(textarea);
-        wrapper.appendChild(removeBtn);
-
-        followupContainer.appendChild(wrapper);
+    const removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.textContent = "- remove";
+    removeBtn.style.marginLeft = "10px";
+    removeBtn.addEventListener("click", () => {
+        followupContainer.removeChild(wrapper);
     });
+
+    wrapper.appendChild(label);
+    wrapper.appendChild(textarea);
+    wrapper.appendChild(removeBtn);
+
+    followupContainer.appendChild(wrapper);
+});
 
 form.addEventListener("submit", function(e) {
     e.preventDefault(); // prevent page reload
-    container.innerHTML = ""; // clear previous responses
+    // container.innerHTML = ""; // clear previous responses
 
     const mode = form.elements["mode"].value;
     let promptData;
@@ -75,12 +75,34 @@ form.addEventListener("submit", function(e) {
 
     evtSource.onmessage = function(event) {
         const responses = JSON.parse(event.data);
-        container.innerHTML = ""; // replace previous content
+        let form_ii = document.getElementById('db-form');
+        let form_section = document.getElementById('db-form-inner');
+        console.log(form_ii, form_section)
+        form_section.innerHTML = ""; // replace previous content
+
         responses.forEach((r, i) => {
-            const p = document.createElement("p");
-            spk_num = i%2 == 0 ? "1" : "2"
-            p.innerHTML = "<b>Speaker " + spk_num + ":</b> " + r;
-            container.appendChild(p);
+            // Create container div for each response
+            const responseDiv = document.createElement("div");
+            responseDiv.className = "response-item";
+            responseDiv.style.marginBottom = "15px";
+            
+            // Create label
+            const label = document.createElement("label");
+            const spk_num = i % 2 == 0 ? "1" : "2";
+            label.innerHTML = `<b>Speaker ${spk_num}:</b>`;
+            label.style.display = "block";
+            label.style.marginBottom = "5px";
+            
+            // Create textarea
+            const textarea = document.createElement("textarea");
+            textarea.name = `response_${i}`;
+            textarea.value = r;
+            // Store speaker info as data attribute
+            textarea.dataset.speaker = spk_num;
+            
+            responseDiv.appendChild(label);
+            responseDiv.appendChild(textarea);
+            form_section.appendChild(responseDiv);
         });
     };
 
@@ -88,6 +110,60 @@ form.addEventListener("submit", function(e) {
         evtSource.close(); // close stream on error
     };
 });
+
+const db_form = document.getElementById('db-form');
+db_form.addEventListener("submit", function(e) {
+    e.preventDefault(); // prevent page reload
+    const dialogueData = {
+        prompt: form.elements["initial-prompt"].value,
+        initial_response: "I think it's blue",
+    };
+
+    const textareas = db_form.querySelectorAll('textarea');
+    
+    // Build blocks array from textarea values
+    const blocks = [];
+    textareas.forEach((textarea) => {
+        blocks.push({
+            speaker: textarea.dataset.speaker,
+            text: textarea.value.trim()
+        });
+    });
+
+    // Call the function
+    sendDataToFlask(dialogueData)
+        .then(result => {
+            console.log('Dialogue inserted successfully:', result);
+        })
+        .catch(error => {
+            console.error('Failed to insert dialogue:', error);
+        });
+})
+
+// JavaScript to send data to Flask endpoint using URL parameters
+async function sendDataToFlask(data) {
+    try {
+        // Convert data object to JSON string for the URL parameter
+        const dataParam = encodeURIComponent(JSON.stringify(data));
+        const url = `/insert?data=${dataParam}`;
+        
+        const response = await fetch(url, {
+            method: 'GET', // Using GET since you're reading from request.args
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.text();
+        console.log('Success:', result);
+        return result;
+    } catch (error) {
+        console.error('Error:', error);
+        throw error;
+    }
+}
+
 
 const modeSelect = document.getElementById("mode");
 const singleSection = document.getElementById("single-prompt-section");
