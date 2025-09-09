@@ -75,9 +75,7 @@ form.addEventListener("submit", function(e) {
 
     evtSource.onmessage = function(event) {
         const responses = JSON.parse(event.data);
-        let form_ii = document.getElementById('db-form');
         let form_section = document.getElementById('db-form-inner');
-        console.log(form_ii, form_section)
         form_section.innerHTML = ""; // replace previous content
 
         responses.forEach((r, i) => {
@@ -123,6 +121,8 @@ db_form.addEventListener("submit", function(e) {
     
     // Build blocks array from textarea values
     const blocks = [];
+    console.log("textareas", textareas)
+
     textareas.forEach((textarea) => {
         blocks.push({
             speaker: textarea.dataset.speaker,
@@ -130,6 +130,7 @@ db_form.addEventListener("submit", function(e) {
         });
     });
 
+    dialogueData.blocks = blocks;
     // Call the function
     sendDataToFlask(dialogueData)
         .then(result => {

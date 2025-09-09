@@ -116,7 +116,7 @@ TEMPLATE = """
                 <form id="db-form">
                     <div id="db-form-inner">
                     </div>
-                    <button type="submit">submit</button>
+                    <button type="submit">submit to database</button>
                 </form>
             </div>
         </div>
@@ -278,15 +278,16 @@ def require_password():
 def example():
     raw_data = request.args.get("data")
     print("got req, raw data is", raw_data)
+    # Parse the JSON data
+    data = json.loads(raw_data)
+    
+    # Insert directly into database
     dialogue_id = database_utils.insert_dialogue(
-        prompt="What's your favorite color?",
-        initial_response="I think it's blue.",
-        blocks=[
-            {"speaker": "A", "text": "I like blue because it's calming."},
-            {"speaker": "B", "text": "Interesting, I prefer red for its energy."},
-            {"speaker": "A", "text": "Makes sense, red can be very powerful."},
-        ],
+        prompt=data['prompt'],
+        initial_response=data['initial_response'],
+        blocks=data['blocks']
     )
+    
     return f"Inserted dialogue {dialogue_id}"
 
 @app.route("/", methods=["GET"])
