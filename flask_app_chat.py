@@ -1,5 +1,5 @@
 from transformers import GPT2Tokenizer, GPT2LMHeadModel
-from flask import Flask, render_template_string, request, Response
+from flask import Flask, render_template, render_template_string, request, Response, jsonify
 import torch
 import sys
 import time
@@ -7,6 +7,7 @@ import re
 import os
 import json
 from dotenv import load_dotenv
+import sqlite3
 from claude_utils import call_model
 import anthropic
 import database_utils
@@ -274,6 +275,67 @@ def require_password():
     if not auth or not check_auth(auth.password):
         return authenticate()
 
+@app.route('/history')
+def history():
+    return render_template('history.html')
+
+@app.route('/api/dialogues')
+def get_dialogues():
+    try:
+        # Get database connection
+        conn = sqlite3.connect('dialogues.db')  # Replace with your database path
+        conn.row_factory = sqlite3.Row  # This allows dict-like access to rows
+        cursor = conn.cursor()
+        
+        # Query to get all dialogues with their blocks
+        cursor.execute("""
+            SELECT 
+                d.id,
+                d.prompt,
+                d.initial_response,
+                d.created_at,
+                db.speaker,
+                db.block_order,
+                db.text as block_text
+            FROM dialogue d
+            LEFT JOIN dialogue_block db ON d.id = db.dialogue_id
+            ORDER BY d.id DESC, db.block_order ASC
+        """)
+        
+        rows = cursor.fetchall()
+        
+        # Group blocks by dialogue
+        dialogues = {}
+        for row in rows:
+            dialogue_id = row['id']
+            
+            if dialogue_id not in dialogues:
+                dialogues[dialogue_id] = {
+                    'id': dialogue_id,
+                    'prompt': row['prompt'],
+                    'initial_response': row['initial_response'],
+                    'created_at': row['created_at'],
+                    'blocks': []
+                }
+            
+            # Add block if it exists
+            if row['speaker']:
+                dialogues[dialogue_id]['blocks'].append({
+                    'speaker': row['speaker'],
+                    'text': row['block_text'],
+                    'order': row['block_order']
+                })
+        
+        conn.close()
+        
+        # Convert to list and return as JSON
+        dialogues_list = list(dialogues.values())
+        return jsonify(dialogues_list)
+        
+    except Exception as e:
+        print(f"Error fetching dialogues: {e}")
+        return jsonify({'error': 'Failed to fetch dialogues'}), 500
+
 @app.route("/insert")
 def example():
     raw_data = request.args.get("data")
@@ -287,7 +349,7 @@ def example():
         initial_response=data['initial_response'],
         blocks=data['blocks']
     )
-    
+
     return f"Inserted dialogue {dialogue_id}"
 
 @app.route("/", methods=["GET"])

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dialogue History</title>
+<link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+    <h1>Dialogue History</h1>
+    <div id="dialogues-container"></div>
+    <script>
+        // Load dialogues when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDialogues();
+        });
+
+        async function loadDialogues() {
+            try {
+                const response = await fetch('/api/dialogues');
+                const dialogues = await response.json();
+                
+                const container = document.getElementById('dialogues-container');
+                container.innerHTML = '';
+                
+                dialogues.forEach(dialogue => {
+                    const dialogueDiv = createDialogueElement(dialogue);
+                    container.appendChild(dialogueDiv);
+                });
+                
+            } catch (error) {
+                console.error('Error loading dialogues:', error);
+                document.getElementById('dialogues-container').innerHTML = 
+                    '<p>Error loading dialogues</p>';
+            }
+        }
+
+        function createDialogueElement(dialogue) {
+            const dialogueDiv = document.createElement('div');
+            dialogueDiv.style.border = '1px solid #ccc';
+            dialogueDiv.style.margin = '10px 0';
+            dialogueDiv.style.padding = '10px';
+            
+            // Create header with ID and expand/collapse button
+            const header = document.createElement('div');
+            header.style.cursor = 'pointer';
+            header.style.fontWeight = 'bold';
+            
+            const expandSymbol = document.createElement('span');
+            expandSymbol.textContent = '+';
+            expandSymbol.style.marginRight = '10px';
+            expandSymbol.style.fontSize = '18px';
+            
+            const idText = document.createElement('span');
+            idText.textContent = `Dialogue ID: ${dialogue.id}`;
+            
+            const dateText = document.createElement('span');
+            dateText.textContent = ` (${new Date(dialogue.created_at).toLocaleString()})`;
+            dateText.style.fontWeight = 'normal';
+            dateText.style.color = '#666';
+            
+            header.appendChild(expandSymbol);
+            header.appendChild(idText);
+            header.appendChild(dateText);
+            
+            // Create content div (initially hidden)
+            const content = document.createElement('div');
+            content.style.display = 'none';
+            content.style.marginTop = '10px';
+            
+            // Add prompt
+            const promptDiv = document.createElement('div');
+            promptDiv.innerHTML = `<strong>Prompt:</strong> ${dialogue.prompt}`;
+            content.appendChild(promptDiv);
+            
+            // Add initial response
+            const initialDiv = document.createElement('div');
+            initialDiv.innerHTML = `<strong>Initial Response:</strong> ${dialogue.initial_response}`;
+            initialDiv.style.marginTop = '10px';
+            content.appendChild(initialDiv);
+            
+            // Add blocks
+            if (dialogue.blocks && dialogue.blocks.length > 0) {
+                const blocksDiv = document.createElement('div');
+                blocksDiv.innerHTML = '<strong>Dialogue:</strong>';
+                blocksDiv.style.marginTop = '10px';
+                
+                dialogue.blocks.forEach(block => {
+                    const blockDiv = document.createElement('div');
+                    blockDiv.innerHTML = `<strong>Speaker ${block.speaker}:</strong> ${block.text}`;
+                    blockDiv.style.marginLeft = '20px';
+                    blockDiv.style.marginTop = '5px';
+                    blocksDiv.appendChild(blockDiv);
+                });
+                
+                content.appendChild(blocksDiv);
+            }
+            
+            // Add click handler to toggle visibility
+            header.addEventListener('click', function() {
+                if (content.style.display === 'none') {
+                    content.style.display = 'block';
+                    expandSymbol.textContent = '-';
+                } else {
+                    content.style.display = 'none';
+                    expandSymbol.textContent = '+';
+                }
+            });
+            
+            dialogueDiv.appendChild(header);
+            dialogueDiv.appendChild(content);
+            
+            return dialogueDiv;
+        }
+    </script>
+</body>
+</html>
