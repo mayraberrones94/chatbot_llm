@@ -114,6 +114,7 @@ TEMPLATE = """
         <div>
             <h2>Results</h2>
             <div id="results">
+                <div id="initial"> </div>
                 <form id="db-form">
                     <div id="db-form-inner">
                     </div>

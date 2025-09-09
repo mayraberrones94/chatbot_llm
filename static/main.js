@@ -78,6 +78,10 @@ form.addEventListener("submit", function(e) {
         let form_section = document.getElementById('db-form-inner');
         form_section.innerHTML = ""; // replace previous content
 
+        const initial_res = responses.shift();
+        const initialDiv = document.getElementById("initial");
+        initialDiv.innerText = `${initial_res}`;
+
         responses.forEach((r, i) => {
             // Create container div for each response
             const responseDiv = document.createElement("div");
@@ -112,9 +116,10 @@ form.addEventListener("submit", function(e) {
 const db_form = document.getElementById('db-form');
 db_form.addEventListener("submit", function(e) {
     e.preventDefault(); // prevent page reload
+    const initial = document.getElementById("initial").innerText
     const dialogueData = {
         prompt: form.elements["initial-prompt"].value,
-        initial_response: "I think it's blue",
+        initial_response: initial,
     };
 
     const textareas = db_form.querySelectorAll('textarea');
