@@ -97,6 +97,8 @@ form.addEventListener("submit", function(e) {
             
             // Create textarea
             const textarea = document.createElement("textarea");
+            textarea.rows = "4";
+            textarea.cols = "50";
             textarea.name = `response_${i}`;
             textarea.value = r;
             // Store speaker info as data attribute

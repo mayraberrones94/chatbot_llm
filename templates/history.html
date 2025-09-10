@@ -6,6 +6,7 @@
 </head>
 <body>
     <h1>Dialogue History</h1>
+    <p>return to <a href="/">main page</a></p>
     <div id="dialogues-container"></div>
     <script>
         // Load dialogues when page loads
@@ -35,9 +36,10 @@
 
         function createDialogueElement(dialogue) {
             const dialogueDiv = document.createElement('div');
-            dialogueDiv.style.border = '1px solid #ccc';
+            // dialogueDiv.style.border = '1px solid black';
             dialogueDiv.style.margin = '10px 0';
             dialogueDiv.style.padding = '10px';
+            dialogueDiv.style.borderBottom = '1px solid black';
             
             // Create header with ID and expand/collapse button
             const header = document.createElement('div');
@@ -55,7 +57,6 @@
             const dateText = document.createElement('span');
             dateText.textContent = ` (${new Date(dialogue.created_at).toLocaleString()})`;
             dateText.style.fontWeight = 'normal';
-            dateText.style.color = '#666';
             
             header.appendChild(expandSymbol);
             header.appendChild(idText);

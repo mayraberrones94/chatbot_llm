@@ -276,10 +276,6 @@ def require_password():
     if not auth or not check_auth(auth.password):
         return authenticate()
 
-@app.route('/history')
-def history():
-    return render_template('history.html')
-
 @app.route('/api/dialogues')
 def get_dialogues():
     try:
@@ -353,9 +349,13 @@ def example():
 
     return f"Inserted dialogue {dialogue_id}"
 
+@app.route('/history')
+def history():
+    return render_template('history.html')
+
 @app.route("/", methods=["GET"])
 def index():
-    return render_template_string(TEMPLATE)
+    return render_template("index.html")
 
 if __name__ == "__main__":
     app.run(port=5050)

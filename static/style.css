@@ -21,6 +21,10 @@ label {
 	flex-direction: row;
 }
 
+#initial {
+	margin-bottom: 20px;
+}
+
 #main > div {
 	width: 600px;
 }
