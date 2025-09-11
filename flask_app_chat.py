@@ -333,6 +333,62 @@ def get_dialogues():
         print(f"Error fetching dialogues: {e}")
         return jsonify({'error': 'Failed to fetch dialogues'}), 500
 
+@app.route('/api/dialogues/<int:dialogue_id>', methods=['DELETE'])
+def delete_dialogue(dialogue_id):
+    try:
+        conn = sqlite3.connect("dialogues.db")
+        cursor = conn.cursor()
+        
+        # Delete dialogue (blocks will be deleted automatically due to CASCADE)
+        cursor.execute("DELETE FROM dialogue WHERE id = ?", (dialogue_id,))
+        conn.commit()
+        
+        if cursor.rowcount == 0:
+            conn.close()
+            return jsonify({'error': 'Dialogue not found'}), 404
+            
+        conn.close()
+        return jsonify({'success': True, 'message': 'Dialogue deleted'})
+        
+    except Exception as e:
+        print(f"Error deleting dialogue: {e}")
+        return jsonify({'error': 'Failed to delete dialogue'}), 500
+
+@app.route('/api/dialogues/<int:dialogue_id>', methods=['PUT'])
+def update_dialogue(dialogue_id):
+    try:
+        data = request.get_json()
+        
+        conn = sqlite3.connect("dialogues.db")
+        cursor = conn.cursor()
+        
+        # Update dialogue
+        cursor.execute("""
+            UPDATE dialogue 
+            SET prompt = ?, initial_response = ? 
+            WHERE id = ?
+        """, (data['prompt'], data['initial_response'], dialogue_id))
+        
+        # Delete existing blocks
+        cursor.execute("DELETE FROM dialogue_block WHERE dialogue_id = ?", (dialogue_id,))
+        
+        # Insert updated blocks
+        for i, block in enumerate(data['blocks']):
+            cursor.execute("""
+                INSERT INTO dialogue_block (dialogue_id, speaker, block_order, text)
+                VALUES (?, ?, ?, ?)
+            """, (dialogue_id, block['speaker'], i, block['text']))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True, 'message': 'Dialogue updated'})
+        
+    except Exception as e:
+        print(f"Error updating dialogue: {e}")
+        return jsonify({'error': 'Failed to update dialogue'}), 500
+
+
 @app.route("/insert")
 def example():
     raw_data = request.args.get("data")

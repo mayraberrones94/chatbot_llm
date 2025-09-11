@@ -2,14 +2,12 @@
 <html>
 <head>
     <title>Dialogue History</title>
-<link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
     <h1>Dialogue History</h1>
-    <p>return to <a href="/">main page</a></p>
     <div id="dialogues-container"></div>
+
     <script>
-        // Load dialogues when page loads
         document.addEventListener('DOMContentLoaded', function() {
             loadDialogues();
         });
@@ -36,15 +34,20 @@
 
         function createDialogueElement(dialogue) {
             const dialogueDiv = document.createElement('div');
-            // dialogueDiv.style.border = '1px solid black';
+            dialogueDiv.style.border = '1px solid #ccc';
             dialogueDiv.style.margin = '10px 0';
             dialogueDiv.style.padding = '10px';
-            dialogueDiv.style.borderBottom = '1px solid black';
             
-            // Create header with ID and expand/collapse button
+            // Create header with ID and buttons
             const header = document.createElement('div');
-            header.style.cursor = 'pointer';
-            header.style.fontWeight = 'bold';
+            header.style.display = 'flex';
+            header.style.justifyContent = 'space-between';
+            header.style.alignItems = 'center';
+            
+            // Left side - expandable content
+            const leftDiv = document.createElement('div');
+            leftDiv.style.cursor = 'pointer';
+            leftDiv.style.fontWeight = 'bold';
             
             const expandSymbol = document.createElement('span');
             expandSymbol.textContent = '+';
@@ -57,15 +60,37 @@
             const dateText = document.createElement('span');
             dateText.textContent = ` (${new Date(dialogue.created_at).toLocaleString()})`;
             dateText.style.fontWeight = 'normal';
+            dateText.style.color = '#666';
             
-            header.appendChild(expandSymbol);
-            header.appendChild(idText);
-            header.appendChild(dateText);
+            leftDiv.appendChild(expandSymbol);
+            leftDiv.appendChild(idText);
+            leftDiv.appendChild(dateText);
+            
+            // Right side - buttons
+            const buttonsDiv = document.createElement('div');
+            
+            const editButton = document.createElement('button');
+            editButton.textContent = 'Edit';
+            editButton.style.marginRight = '5px';
+            
+            const deleteButton = document.createElement('button');
+            deleteButton.textContent = 'Delete';
+            deleteButton.style.backgroundColor = '#dc3545';
+            deleteButton.style.color = 'white';
+            deleteButton.style.border = 'none';
+            deleteButton.style.padding = '4px 8px';
+            
+            buttonsDiv.appendChild(editButton);
+            buttonsDiv.appendChild(deleteButton);
+            
+            header.appendChild(leftDiv);
+            header.appendChild(buttonsDiv);
             
             // Create content div (initially hidden)
             const content = document.createElement('div');
             content.style.display = 'none';
             content.style.marginTop = '10px';
+            content.id = `content-${dialogue.id}`;
             
             // Add prompt
             const promptDiv = document.createElement('div');
@@ -95,8 +120,8 @@
                 content.appendChild(blocksDiv);
             }
             
-            // Add click handler to toggle visibility
-            header.addEventListener('click', function() {
+            // Event listeners
+            leftDiv.addEventListener('click', function() {
                 if (content.style.display === 'none') {
                     content.style.display = 'block';
                     expandSymbol.textContent = '-';
@@ -106,10 +131,157 @@
                 }
             });
             
+            editButton.addEventListener('click', function() {
+                editDialogue(dialogue);
+            });
+            
+            deleteButton.addEventListener('click', function() {
+                deleteDialogue(dialogue.id);
+            });
+            
             dialogueDiv.appendChild(header);
             dialogueDiv.appendChild(content);
             
             return dialogueDiv;
+        }
+
+        async function deleteDialogue(id) {
+            if (!confirm('Are you sure you want to delete this dialogue?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/dialogues/${id}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    loadDialogues();
+                } else {
+                    alert('Failed to delete dialogue');
+                }
+            } catch (error) {
+                console.error('Error deleting dialogue:', error);
+                alert('Error deleting dialogue');
+            }
+        }
+
+        function editDialogue(dialogue) {
+            const content = document.getElementById(`content-${dialogue.id}`);
+            content.innerHTML = '';
+            
+            const form = document.createElement('form');
+            
+            // Prompt
+            const promptLabel = document.createElement('label');
+            promptLabel.textContent = 'Prompt:';
+            const promptInput = document.createElement('div');
+            promptInput.innerHTML = dialogue.prompt;
+            promptInput.name = 'prompt';
+            form.appendChild(promptLabel);
+            form.appendChild(document.createElement('br'));
+            form.appendChild(promptInput);
+            form.appendChild(document.createElement('br'));
+            form.appendChild(document.createElement('br'));
+            
+            // Initial response
+            const initialLabel = document.createElement('label');
+            initialLabel.textContent = 'Initial Response:';
+            const initialInput = document.createElement('div');
+            initialInput.innerHTML = dialogue.initial_response;
+            initialInput.name = 'initial_response';
+            form.appendChild(initialLabel);
+            form.appendChild(document.createElement('br'));
+            form.appendChild(initialInput);
+            form.appendChild(document.createElement('br'));
+            form.appendChild(document.createElement('br'));
+            
+            // Blocks
+            const blocksLabel = document.createElement('label');
+            blocksLabel.textContent = 'Dialogue Blocks:';
+            form.appendChild(blocksLabel);
+            form.appendChild(document.createElement('br'));
+            
+            dialogue.blocks.forEach((block, i) => {
+                const blockLabel = document.createElement('label');
+                blockLabel.textContent = `Speaker ${block.speaker}:`;
+                const blockInput = document.createElement('textarea');
+                blockInput.value = block.text;
+                blockInput.name = `block_${i}`;
+                blockInput.dataset.speaker = block.speaker;
+                
+                form.appendChild(blockLabel);
+                form.appendChild(document.createElement('br'));
+                form.appendChild(blockInput);
+                form.appendChild(document.createElement('br'));
+                form.appendChild(document.createElement('br'));
+            });
+            
+            // Buttons
+            const saveButton = document.createElement('button');
+            saveButton.type = 'submit';
+            saveButton.textContent = 'Save';
+            
+            const cancelButton = document.createElement('button');
+            cancelButton.type = 'button';
+            cancelButton.textContent = 'Cancel';
+            
+            form.appendChild(saveButton);
+            form.appendChild(cancelButton);
+            
+            // Event listeners
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                saveDialogue(dialogue.id, form);
+            });
+            
+            cancelButton.addEventListener('click', function() {
+                loadDialogues();
+            });
+            
+            content.appendChild(form);
+            content.style.display = 'block';
+        }
+
+        async function saveDialogue(id, form) {
+            const blocks = [];
+            const blockInputs = form.querySelectorAll('textarea[name^="block_"]');
+            blockInputs.forEach(input => {
+                blocks.push({
+                    speaker: input.dataset.speaker,
+                    text: input.value.trim()
+                });
+            });
+            
+            // Get original dialogue data for prompt and initial_response
+            const response = await fetch('/api/dialogues');
+            const dialogues = await response.json();
+            const originalDialogue = dialogues.find(d => d.id === id);
+            
+            const data = {
+                prompt: originalDialogue.prompt,
+                initial_response: originalDialogue.initial_response,
+                blocks: blocks
+            };
+            
+            try {
+                const response = await fetch(`/api/dialogues/${id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                if (response.ok) {
+                    loadDialogues();
+                } else {
+                    alert('Failed to update dialogue');
+                }
+            } catch (error) {
+                console.error('Error updating dialogue:', error);
+                alert('Error updating dialogue');
+            }
         }
     </script>
 </body>
