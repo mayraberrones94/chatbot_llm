@@ -2,6 +2,7 @@
 <html>
 <head>
     <title>Dialogue History</title>
+    <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
     <h1>Dialogue History</h1>
@@ -34,7 +35,7 @@
 
         function createDialogueElement(dialogue) {
             const dialogueDiv = document.createElement('div');
-            dialogueDiv.style.border = '1px solid #ccc';
+            dialogueDiv.style.borderBottom = '1px solid black';
             dialogueDiv.style.margin = '10px 0';
             dialogueDiv.style.padding = '10px';
             
@@ -173,38 +174,22 @@
             const form = document.createElement('form');
             
             // Prompt
-            const promptLabel = document.createElement('label');
-            promptLabel.textContent = 'Prompt:';
-            const promptInput = document.createElement('div');
-            promptInput.innerHTML = dialogue.prompt;
-            promptInput.name = 'prompt';
+            const promptLabel = document.createElement('p');
+            promptLabel.innerHTML = '<b>Prompt: </b>' + dialogue.prompt;
             form.appendChild(promptLabel);
-            form.appendChild(document.createElement('br'));
-            form.appendChild(promptInput);
-            form.appendChild(document.createElement('br'));
-            form.appendChild(document.createElement('br'));
-            
             // Initial response
-            const initialLabel = document.createElement('label');
-            initialLabel.textContent = 'Initial Response:';
-            const initialInput = document.createElement('div');
-            initialInput.innerHTML = dialogue.initial_response;
-            initialInput.name = 'initial_response';
+            const initialLabel = document.createElement('p');
+            initialLabel.innerHTML = '<b>Initial Response: </b>' + dialogue.initial_response;
             form.appendChild(initialLabel);
-            form.appendChild(document.createElement('br'));
-            form.appendChild(initialInput);
-            form.appendChild(document.createElement('br'));
-            form.appendChild(document.createElement('br'));
             
             // Blocks
             const blocksLabel = document.createElement('label');
-            blocksLabel.textContent = 'Dialogue Blocks:';
+            blocksLabel.innerHTML = '<h3>Dialogue Blocks:</h3>';
             form.appendChild(blocksLabel);
-            form.appendChild(document.createElement('br'));
             
             dialogue.blocks.forEach((block, i) => {
                 const blockLabel = document.createElement('label');
-                blockLabel.textContent = `Speaker ${block.speaker}:`;
+                blockLabel.innerHTML = `<b>Speaker ${block.speaker}</b>:`;
                 const blockInput = document.createElement('textarea');
                 blockInput.value = block.text;
                 blockInput.name = `block_${i}`;
@@ -213,7 +198,6 @@
                 form.appendChild(blockLabel);
                 form.appendChild(document.createElement('br'));
                 form.appendChild(blockInput);
-                form.appendChild(document.createElement('br'));
                 form.appendChild(document.createElement('br'));
             });
             
