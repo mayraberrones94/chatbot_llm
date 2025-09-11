@@ -265,10 +265,10 @@ def stream():
     return Response(generate(), mimetype="text/event-stream")
 
 
-@app.route("/init")
-def init():
-    database_utils.init_db(app)
-    return "Database initialized!"
+# @app.route("/init")
+# def init():
+#     database_utils.init_db(app)
+#     return "Database initialized!"
 
 @app.before_request
 def require_password():
