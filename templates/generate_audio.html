@@ -2,8 +2,7 @@
 <html>
 <head>
   <title>Generate Audio</title>
-<!-- <link rel="stylesheet" href="/static/style.css" /> -->
-
+    <link rel="stylesheet" href="/static/audio-gen.css" />
   <style>
     #loading {
       display: none;
@@ -11,6 +10,7 @@
   </style>
 </head>
 <body>
+    <div id="main">
   <h1>Generate Audio from Dialogue</h1>
   <form id="audio-form">
     <label for="dialogue_id">Select Dialogue:</label>
@@ -88,11 +88,13 @@
             
             audioFiles.forEach(file => {
                 const blockDiv = document.createElement('div');
+           
                 blockDiv.className = `audio-block speaker-${file.speaker}`;
                 
                 // Extract relative path for the audio URL
                 const relativePath = file.file_path.split('/audio/')[1] || file.file_path;
-                const audioUrl = `/audio/${relativePath}`;
+                const timestamp = Date.now();
+                const audioUrl = `/audio/${relativePath}?t=${timestamp}`;
                 
                 blockDiv.innerHTML = `
                     <div class="audio-text">
@@ -114,5 +116,6 @@
         }
     </script>
   <div id="audio-results"></div>
+</div>
 </body>
 </html>

@@ -72,13 +72,16 @@ def audio_gen(request, db, cur):
         with open(file_path, "wb") as f:
             f.write(audio_bytes)
 
-        # Insert into DB
+        # Delete existing entry for this specific block/speaker
         cur.execute(
-            """
-            INSERT INTO dialogue_audio (block_id, speaker, voice, file_path)
-            VALUES (?, ?, ?, ?)
-            """,
-            (block_id, speaker, voice, file_path),
+            "DELETE FROM dialogue_audio WHERE block_id = ? AND speaker = ?",
+            (block_id, speaker)
+        )
+        
+        # Insert new entry
+        cur.execute(
+            "INSERT INTO dialogue_audio (block_id, speaker, voice, file_path) VALUES (?, ?, ?, ?)",
+            (block_id, speaker, voice, file_path)
         )
 
     db.commit()

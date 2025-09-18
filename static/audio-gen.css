@@ -1,0 +1,18 @@
+body {
+	background-color: lightblue;
+	font-family: helvetica;
+}
+
+#main {
+	width: 600px;
+}
+
+audio {
+	margin-top: 10px;
+	margin-bottom: 20px;
+}
+
+#loading {
+	margin-top: 20px;
+	margin-bottom: 20px;
+}
