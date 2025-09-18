@@ -40,52 +40,48 @@ def call_fish_api(text, voice):
 
 
 def audio_gen(request, db, cur):
-    if request.method == "POST":
-        dialogue_id = int(request.form["dialogue_id"])
-        speaker1_voice = request.form["speaker1_voice"]
-        speaker2_voice = request.form["speaker2_voice"]
+    dialogue_id = int(request.form["dialogue_id"])
+    speaker1_voice = request.form["speaker1_voice"]
+    speaker2_voice = request.form["speaker2_voice"]
 
-        # Fetch dialogue blocks
+    # Fetch dialogue blocks
+    cur.execute(
+        "SELECT id, speaker, block_order, text FROM dialogue_block WHERE dialogue_id = ? ORDER BY block_order",
+        (dialogue_id,),
+    )
+    blocks = cur.fetchall()
+
+    dialogue_dir = os.path.join(AUDIO_DIR, f"dialogue_{dialogue_id}")
+    os.makedirs(dialogue_dir, exist_ok=True)
+
+    for block in blocks:
+        block_id, speaker, order, text = block
+        if not text.strip():
+            continue
+
+        # Pick voice
+        voice = speaker1_voice if speaker == "1" else speaker2_voice
+
+        # Call Fish API
+        audio_bytes = call_fish_api(text, voice)
+
+        # Save to file
+        filename = f"block_{order}_{speaker}.mp3"
+        file_path = os.path.join(dialogue_dir, filename)
+        
+        with open(file_path, "wb") as f:
+            f.write(audio_bytes)
+
+        # Insert into DB
         cur.execute(
-            "SELECT id, speaker, block_order, text FROM dialogue_block WHERE dialogue_id = ? ORDER BY block_order",
-            (dialogue_id,),
+            """
+            INSERT INTO dialogue_audio (block_id, speaker, voice, file_path)
+            VALUES (?, ?, ?, ?)
+            """,
+            (block_id, speaker, voice, file_path),
         )
-        blocks = cur.fetchall()
 
-        dialogue_dir = os.path.join(AUDIO_DIR, f"dialogue_{dialogue_id}")
-        os.makedirs(dialogue_dir, exist_ok=True)
-
-        for block in blocks:
-            block_id, speaker, order, text = block
-            if not text.strip():
-                continue
-
-            # Pick voice
-            voice = speaker1_voice if speaker == "1" else speaker2_voice
-
-            # Call Fish API
-            audio_bytes = call_fish_api(text, voice)
-
-            # Save to file
-            filename = f"block_{order}_{speaker}.mp3"
-            file_path = os.path.join(dialogue_dir, filename)
-            with open(file_path, "wb") as f:
-                f.write(audio_bytes)
-
-            # Insert into DB
-            cur.execute(
-                """
-                INSERT INTO dialogue_audio (block_id, speaker, voice, file_path)
-                VALUES (?, ?, ?, ?)
-                """,
-                (block_id, speaker, voice, file_path),
-            )
-
-        db.commit()
-        # return redirect(url_for("generate_audio"))
-
-    # GET request → render form
-    cur.execute("SELECT id FROM dialogue ORDER BY id")
-    dialogues = cur.fetchall()
-
-    return dialogues
+    db.commit()
+    
+    # Return the dialogue_id instead of dialogues list
+    return dialogue_id

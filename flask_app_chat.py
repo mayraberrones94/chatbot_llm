@@ -1,5 +1,5 @@
 from transformers import GPT2Tokenizer, GPT2LMHeadModel
-from flask import Flask, render_template, render_template_string, request, Response, jsonify
+from flask import Flask, render_template, render_template_string, request, Response, jsonify, send_file
 import torch
 import sys
 import time
@@ -16,6 +16,7 @@ load_dotenv()
 
 client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 PASSWORD = "photocopier!"
+AUDIO_DIR = "audio"
 
 def check_auth(password):
     """Check if the provided password is correct."""
@@ -393,11 +394,53 @@ def update_dialogue(dialogue_id):
 def generate_audio():
     db = database_utils.get_db()
     cur = db.cursor()
-
-    dialogues=audio_utils.audio_gen(request, db, cur)
-    print("got dialogues", dialogues)
+    
+    if request.method == "POST":
+        # Generate audio and get the dialogue_id
+        dialogue_id = audio_utils.audio_gen(request, db, cur)
+        
+        # Fetch the generated audio files for this dialogue
+        cur.execute("""
+            SELECT da.block_id, da.speaker, da.voice, da.file_path, db.block_order, db.text
+            FROM dialogue_audio da
+            JOIN dialogue_block db ON da.block_id = db.id
+            WHERE db.dialogue_id = ?
+            ORDER BY db.block_order
+        """, (dialogue_id,))
+        
+        audio_files = cur.fetchall()
+        
+        # Return JSON response with audio file info
+        return jsonify({
+            'success': True,
+            'dialogue_id': dialogue_id,
+            'audio_files': [
+                {
+                    'block_id': row[0],
+                    'speaker': row[1],
+                    'voice': row[2],
+                    'file_path': row[3],
+                    'block_order': row[4],
+                    'text': row[5]
+                }
+                for row in audio_files
+            ]
+        })
+    
+    # GET request - render form
+    cur.execute("SELECT id FROM dialogue ORDER BY id")
+    dialogues = cur.fetchall()
     return render_template("generate_audio.html", dialogues=dialogues)
 
+# New route to serve audio files
+@app.route("/audio/<path:filename>")
+def serve_audio(filename):
+    # Security: ensure the file is within AUDIO_DIR
+    safe_path = os.path.join(filename)
+    if not os.path.commonpath([AUDIO_DIR, safe_path]) == AUDIO_DIR:
+        abort(403)
+    
+    return send_file(safe_path, mimetype="audio/mpeg")
 
 @app.route("/insert")
 def example():

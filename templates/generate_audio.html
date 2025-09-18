@@ -3,10 +3,16 @@
 <head>
   <title>Generate Audio</title>
 <!-- <link rel="stylesheet" href="/static/style.css" /> -->
+
+  <style>
+    #loading {
+      display: none;
+    }
+  </style>
 </head>
 <body>
   <h1>Generate Audio from Dialogue</h1>
-  <form method="post">
+  <form id="audio-form">
     <label for="dialogue_id">Select Dialogue:</label>
     <select name="dialogue_id" required>
       {% for d in dialogues %}
@@ -29,7 +35,84 @@
     </select>
     <br><br>
 
-    <button type="submit">Generate Audio</button>
-  </form>
+        <button type="submit">Generate Audio</button>
+    </form>
+    
+    <div class="loading" id="loading">
+        Generating audio... Please wait.
+    </div>
+
+   <div id="audio-results"></div>
+    <script>
+        document.getElementById('audio-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const loadingDiv = document.getElementById('loading');
+            const resultsDiv = document.getElementById('audio-results');
+            
+            // Show loading, clear previous results
+            loadingDiv.style.display = 'block';
+            resultsDiv.innerHTML = '';
+            
+            const formData = new FormData(this);
+            
+            try {
+                const response = await fetch('/generate-audio', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayAudioResults(data.audio_files);
+                } else {
+                    showError('Failed to generate audio: ' + (data.error || 'Unknown error'));
+                }
+            } catch (error) {
+                showError('Error: ' + error.message);
+            } finally {
+                loadingDiv.style.display = 'none';
+            }
+        });
+        
+        function displayAudioResults(audioFiles) {
+            const resultsDiv = document.getElementById('audio-results');
+            
+            if (audioFiles.length === 0) {
+                resultsDiv.innerHTML = '<p>No audio files generated.</p>';
+                return;
+            }
+            
+            resultsDiv.innerHTML = '<h2>Generated Audio</h2>';
+            
+            audioFiles.forEach(file => {
+                const blockDiv = document.createElement('div');
+                blockDiv.className = `audio-block speaker-${file.speaker}`;
+                
+                // Extract relative path for the audio URL
+                const relativePath = file.file_path.split('/audio/')[1] || file.file_path;
+                const audioUrl = `/audio/${relativePath}`;
+                
+                blockDiv.innerHTML = `
+                    <div class="audio-text">
+                        <strong>Speaker ${file.speaker} (${file.voice}):</strong> "${file.text}"
+                    </div>
+                    <audio controls>
+                        <source src="${audioUrl}" type="audio/mpeg">
+                        Your browser does not support the audio element.
+                    </audio>
+                `;
+                
+                resultsDiv.appendChild(blockDiv);
+            });
+        }
+        
+        function showError(message) {
+            const resultsDiv = document.getElementById('audio-results');
+            resultsDiv.innerHTML = `<div class="error">${message}</div>`;
+        }
+    </script>
+  <div id="audio-results"></div>
 </body>
 </html>
