@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Generate Audio</title>
+<!-- <link rel="stylesheet" href="/static/style.css" /> -->
+</head>
+<body>
+  <h1>Generate Audio from Dialogue</h1>
+  <form method="post">
+    <label for="dialogue_id">Select Dialogue:</label>
+    <select name="dialogue_id" required>
+      {% for d in dialogues %}
+        <option value="{{ d.id }}">Dialogue {{ d.id }}</option>
+      {% endfor %}
+    </select>
+    <br><br>
+
+    <label for="speaker1_voice">Speaker 1 Voice:</label>
+    <select name="speaker1_voice" required>
+      <option value="sherron">Sherron Watkins</option>
+      <option value="james">James Timmins</option>
+    </select>
+    <br><br>
+
+    <label for="speaker2_voice">Speaker 2 Voice:</label>
+    <select name="speaker2_voice" required>
+      <option value="sherron">Sherron Watkins</option>
+      <option value="james">James Timmins</option>
+    </select>
+    <br><br>
+
+    <button type="submit">Generate Audio</button>
+  </form>
+</body>
+</html>

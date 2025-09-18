@@ -13,4 +13,5 @@ emails_token.csv
 /dream_email
 __pycache__/
 dialogues.db
-
+dialogues.db*
+audio/

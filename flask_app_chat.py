@@ -11,6 +11,7 @@ import sqlite3
 from claude_utils import call_model
 import anthropic
 import database_utils
+import audio_utils
 load_dotenv()
 
 client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
@@ -387,6 +388,15 @@ def update_dialogue(dialogue_id):
     except Exception as e:
         print(f"Error updating dialogue: {e}")
         return jsonify({'error': 'Failed to update dialogue'}), 500
+
+@app.route("/generate-audio", methods=["GET", "POST"])
+def generate_audio():
+    db = database_utils.get_db()
+    cur = db.cursor()
+
+    dialogues=audio_utils.audio_gen(request, db, cur)
+    print("got dialogues", dialogues)
+    return render_template("generate_audio.html", dialogues=dialogues)
 
 
 @app.route("/insert")
