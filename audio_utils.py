@@ -2,21 +2,39 @@ import os
 import requests
 from flask import Flask, request, render_template, redirect, url_for
 import database_utils  # reuse your database helpers
+from elevenlabs import stream, save
+from elevenlabs.client import ElevenLabs
+# import pydub
+# import io
+# from pydub import AudioSegment
+# import wave
 
 app = Flask(__name__)
 
 AUDIO_DIR = "audio"
 FISH_API_URL = "https://api.fish.audio/v1/tts"  # adjust to real endpoint
 FISH_API_KEY=os.environ["FISH_SPEECH_API_KEY"]
+ELEVENLABS_API_KEY=os.environ["ELEVENLABS_API_KEY"]
+
+elevenlabs = ElevenLabs(
+  api_key=ELEVENLABS_API_KEY,
+)
+
+def call_elevenlabs_api(text, voice):
+    ref_id = "sherron_id" if voice == "sherron" else "james_id"
+
+    # Generate and save directly
+    audio = elevenlabs.text_to_speech.convert(
+        text=text,
+        voice_id="JBFqnCBsd6RMkjVDRZzb",
+        model_id="eleven_multilingual_v2",
+        output_format="mp3_44100_128",
+    )
+
+    return audio
 
 def call_fish_api(text, voice):
-    """
-    Call the Fish API to generate audio.
-    Returns raw MP3 bytes.
-    """
-    # print("voice is", voice)
     ref_id = "8a54d1efde7f4d74abeaa13a9c39d33a" if voice == "sherron" else "701cda524ab24ab9a6ea2a1e844c2650"
-
 
     resp = requests.post(
         FISH_API_URL,
@@ -62,15 +80,15 @@ def audio_gen(request, db, cur):
         # Pick voice
         voice = speaker1_voice if speaker == "1" else speaker2_voice
 
-        # Call Fish API
-        audio_bytes = call_fish_api(text, voice)
-
-        # Save to file
+        # Call elevenlabs API
+        audio = call_elevenlabs_api(text, "voice")
         filename = f"block_{order}_{speaker}.mp3"
         file_path = os.path.join(dialogue_dir, filename)
-        
-        with open(file_path, "wb") as f:
-            f.write(audio_bytes)
+        save(audio, file_path)
+
+        # audio_bytes = call_fish_api(text, voice)
+        # with open(file_path, "wb") as f:
+        #     f.write(audio_bytes)
 
         # Delete existing entry for this specific block/speaker
         cur.execute(

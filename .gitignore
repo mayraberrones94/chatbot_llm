@@ -16,3 +16,4 @@ dialogues.db
 dialogues.db*
 audio/
 .DS_Store
+*.mp3
