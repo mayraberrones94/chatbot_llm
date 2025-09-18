@@ -1,5 +1,5 @@
 from transformers import GPT2Tokenizer, GPT2LMHeadModel
-from flask import Flask, render_template, render_template_string, request, Response, jsonify, send_file
+from flask import Flask, render_template, render_template_string, request, Response, jsonify, send_file, redirect, url_for, abort
 import torch
 import sys
 import time
@@ -12,6 +12,7 @@ from claude_utils import call_model
 import anthropic
 import database_utils
 import audio_utils
+from datetime import datetime
 load_dotenv()
 
 client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
@@ -267,11 +268,6 @@ def stream():
     return Response(generate(), mimetype="text/event-stream")
 
 
-# @app.route("/init")
-# def init():
-#     database_utils.init_db(app)
-#     return "Database initialized!"
-
 @app.before_request
 def require_password():
     auth = request.authorization
@@ -281,12 +277,10 @@ def require_password():
 @app.route('/api/dialogues')
 def get_dialogues():
     try:
-        # Get database connection
-        conn = sqlite3.connect('dialogues.db')  # Replace with your database path
-        conn.row_factory = sqlite3.Row  # This allows dict-like access to rows
+        conn = sqlite3.connect('dialogues.db') 
+        conn.row_factory = sqlite3.Row 
         cursor = conn.cursor()
         
-        # Query to get all dialogues with their blocks
         cursor.execute("""
             SELECT 
                 d.id,
@@ -457,6 +451,69 @@ def example():
     )
 
     return f"Inserted dialogue {dialogue_id}"
+
+@app.route("/dialogue/<int:dialogue_id>", methods=["GET", "POST"])
+def view_dialogue(dialogue_id):
+    db = database_utils.get_db()
+    cur = db.cursor()
+    timestamp = int(datetime.utcnow().timestamp())
+
+    if request.method == "POST":
+        block_id = int(request.form["block_id"])
+        new_text = request.form["text"].strip()
+        voice = request.form["voice"]
+        speaker = request.form["speaker"]
+        print(speaker)
+
+        # Update text
+        cur.execute("UPDATE dialogue_block SET text = ? WHERE id = ?", (new_text, block_id))
+
+        # Generate audio
+        audio_bytes = audio_utils.call_fish_api(new_text, voice)
+
+        dialogue_dir = os.path.join("audio", f"dialogue_{dialogue_id}")
+        os.makedirs(dialogue_dir, exist_ok=True)
+
+        filename = f"block_{block_id}_{speaker}.mp3"
+        file_path = os.path.join(dialogue_dir, filename)
+        with open(file_path, "wb") as f:
+            f.write(audio_bytes)
+
+        # Record in DB
+        cur.execute(
+            """
+            INSERT INTO dialogue_audio (block_id, speaker, voice, file_path)
+            VALUES (?, ?, ?, ?)
+            """,
+            (block_id, speaker, voice, file_path),
+        )
+        db.commit()
+
+        return redirect(url_for("view_dialogue", dialogue_id=dialogue_id, timestamp=timestamp))
+
+    # Fetch dialogue blocks + latest audio
+    cur.execute(
+        """
+        SELECT b.id, b.speaker, b.block_order, b.text, a.file_path, a.voice
+        FROM dialogue_block b
+        LEFT JOIN (
+            SELECT da.block_id, da.file_path, da.voice
+            FROM dialogue_audio da
+            JOIN (
+                SELECT block_id, MAX(created_at) AS latest
+                FROM dialogue_audio
+                GROUP BY block_id
+            ) latest ON da.block_id = latest.block_id AND da.created_at = latest.latest
+        ) a ON b.id = a.block_id
+        WHERE b.dialogue_id = ?
+        ORDER BY b.block_order
+        """,
+        (dialogue_id,),
+    )
+    blocks = cur.fetchall()
+
+    return render_template("view_dialogue.html", dialogue_id=dialogue_id, blocks=blocks)
+
 
 @app.route('/history')
 def history():

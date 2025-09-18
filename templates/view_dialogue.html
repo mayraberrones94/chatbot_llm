@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Dialogue {{ dialogue_id }}</title>
+  <link rel="stylesheet" href="/static/audio-gen.css" />
+</head>
+<body>
+  <h1>Dialogue {{ dialogue_id }}</h1>
+
+  {% for block in blocks %}
+  <div class="block">
+    <form method="post" style="margin-bottom:20px;">
+      <input type="hidden" name="block_id" value="{{ block.id }}">
+      <input type="hidden" name="speaker" value="{{ block.speaker }}">
+
+      <h3>{{ block.speaker }} (Block {{ block.block_order }})</h3>
+
+      <textarea name="text" rows="3" cols="60">{{ block.text }}</textarea><br><br>
+
+      <div>
+        {% if block.file_path %}
+          <audio controls>
+            <source src="{{ url_for('serve_audio', filename=block.file_path) }}?t={{ timestamp }}" type="audio/mpeg">
+            Your browser does not support the audio element.
+          </audio>
+        {% else %}
+          <p><em>No audio yet for this block</em></p>
+        {% endif %}
+      </div>
+
+      <label for="voice">Voice:</label>
+      <select name="voice" required>
+        {% if block.voice == "sherron" %}
+          <option value="sherron" selected>
+            Sherron Watkins
+          </option>
+          <option value="james">
+            James Timmins
+          </option>
+        {% else %}
+          <option value="sherron">
+            Sherron Watkins
+          </option>
+          <option value="james" selected>
+            James Timmins
+          </option>
+        {% endif %}
+      </select><br>
+
+      {% if block.file_path %}
+        <button type="submit">regenerate</button>
+      {% else %}
+        <button type="submit">generate</button>
+      {% endif %}
+
+    </form>
+  </div>
+  {% endfor %}
+
+  <p><a href="{{ url_for('generate_audio') }}">Back to Generate Audio</a></p>
+</body>
+</html>

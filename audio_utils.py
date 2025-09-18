@@ -1,13 +1,9 @@
 import os
 import requests
 from flask import Flask, request, render_template, redirect, url_for
-import database_utils  # reuse your database helpers
+import database_utils
 from elevenlabs import stream, save
 from elevenlabs.client import ElevenLabs
-# import pydub
-# import io
-# from pydub import AudioSegment
-# import wave
 
 app = Flask(__name__)
 
@@ -35,6 +31,7 @@ def call_elevenlabs_api(text, voice):
 
 def call_fish_api(text, voice):
     ref_id = "8a54d1efde7f4d74abeaa13a9c39d33a" if voice == "sherron" else "701cda524ab24ab9a6ea2a1e844c2650"
+    print('voice is', voice)
 
     resp = requests.post(
         FISH_API_URL,
@@ -85,10 +82,6 @@ def audio_gen(request, db, cur):
         filename = f"block_{order}_{speaker}.mp3"
         file_path = os.path.join(dialogue_dir, filename)
         save(audio, file_path)
-
-        # audio_bytes = call_fish_api(text, voice)
-        # with open(file_path, "wb") as f:
-        #     f.write(audio_bytes)
 
         # Delete existing entry for this specific block/speaker
         cur.execute(
