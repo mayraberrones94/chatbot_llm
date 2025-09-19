@@ -53,38 +53,38 @@
     <div>
     <!-- Stability -->
     <label for="stability">Stability: 
-      <span id="stability-value">{{ block.stability or 0.0 }}</span>
+      <span id="stability-value-{{ block.block_order }}">{{ block.stability or 0.0 }}</span>
     </label>
     <input type="range" step="0.1" min="0.0" max="1.0" name="stability" value="{{ block.stability or 0.0 }}"
-           oninput="document.getElementById('stability-value').innerText = this.value"><br>
+           oninput="document.getElementById('stability-value-{{ block.block_order }}').innerText = this.value"><br>
     </div>
 
     <!-- Style -->
     <div>
     <label for="style">Style: 
-      <span id="style-value">{{ block.style or 0.0 }}</span>
+      <span id="style-value-{{ block.block_order }}">{{ block.style or 0.0 }}</span>
     </label>
     <input type="range" step="0.1" min="0.0" max="1.0" name="style" value="{{ block.style or 0.0 }}"
-           oninput="document.getElementById('style-value').innerText = this.value"><br>
+           oninput="document.getElementById('style-value-{{ block.block_order }}').innerText = this.value"><br>
     </div>
 
 
     <!-- Similarity -->
     <div>
     <label for="similarity_boost">Similarity Boost: 
-      <span id="similarity-value">{{ block.similarity_boost or 0.0 }}</span>
+      <span id="similarity-value-{{ block.block_order }}">{{ block.similarity_boost or 0.0 }}</span>
     </label>
     <input type="range" step="0.1" min="0.0" max="1.0" name="similarity_boost" value="{{ block.similarity_boost or 0.0 }}"
-           oninput="document.getElementById('similarity-value').innerText = this.value"><br>
+           oninput="document.getElementById('similarity-value-{{ block.block_order }}').innerText = this.value"><br>
     </div>
 
     <!-- Speed -->
     <div>
     <label for="speed">Speed: 
-      <span id="speed-value">{{ block.speed or 1.0 }}</span>
+      <span id="speed-value-{{ block.block_order }}">{{ block.speed or 1.0 }}</span>
     </label>
     <input type="range" step="0.01" min="0.7" max="1.2" name="speed" value="{{ block.speed or 1.0 }}"
-           oninput="document.getElementById('speed-value').innerText = this.value"><br>
+           oninput="document.getElementById('speed-value-{{ block.block_order }}').innerText = this.value"><br>
       </div>
     </div>
 
