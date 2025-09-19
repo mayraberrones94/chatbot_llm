@@ -119,7 +119,6 @@ document.addEventListener('DOMContentLoaded', function() {
     form.addEventListener("submit", async function(e) {
       e.preventDefault();
       const formData = new FormData(this);
-      // const blockId = formData.get("block_id");
       const blockOrder = formData.get("block_order");
 
       const statusDot = document.getElementById(`status-${blockOrder}`);

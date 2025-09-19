@@ -382,7 +382,14 @@ def serve_audio(filename):
     if not os.path.commonpath([AUDIO_DIR, safe_path]) == AUDIO_DIR:
         abort(403)
     
-    return send_file(safe_path, mimetype="audio/mpeg")
+    response = send_file(safe_path, mimetype="audio/mpeg")
+    
+    # Add cache-busting headers
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    
+    return response
 
 @app.route("/insert")
 def example():
