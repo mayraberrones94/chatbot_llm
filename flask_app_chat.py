@@ -464,10 +464,10 @@ def view_dialogue(dialogue_id):
     # Fetch dialogue blocks + latest audio
     cur.execute(
         """
-        SELECT b.id, b.speaker, b.block_order, b.text, a.file_path, a.voice
+        SELECT b.id, b.speaker, b.block_order, b.text, a.file_path, a.created_at, a.voice, a.stability, a.use_speaker_boost, a.similarity_boost, a.style, a.speed
         FROM dialogue_block b
         LEFT JOIN (
-            SELECT da.block_id, da.file_path, da.voice
+            SELECT da.block_id, da.file_path, da.voice, da.created_at, da.stability, da.use_speaker_boost, da.similarity_boost, da.style, da.speed
             FROM dialogue_audio da
             JOIN (
                 SELECT block_id, MAX(created_at) AS latest
