@@ -62,21 +62,36 @@
             dateText.textContent = ` (${new Date(dialogue.created_at).toLocaleString()})`;
             dateText.style.fontWeight = 'normal';
             dateText.style.color = '#666';
-            
+
+            const firstPara =  document.createElement('span');
+            firstPara.style.fontWeight = 'normal';
+            firstPara.style.color = '#666';
+            firstPara.textContent = `${'  ' + dialogue.blocks[0].text.substring(0, 50) + '...'}`;
+
             leftDiv.appendChild(expandSymbol);
             leftDiv.appendChild(idText);
             leftDiv.appendChild(dateText);
+            leftDiv.appendChild(firstPara);
             
             // Right side - buttons
             const buttonsDiv = document.createElement('div');
-            
+            const audioButton = document.createElement('button');
+
             if(dialogue.audio) {
-                const audioButton = document.createElement('button');
                 audioButton.textContent = 'View Audio';
                 audioButton.style.marginRight = '5px';
-                buttonsDiv.appendChild(audioButton);
+                audioButton.style.backgroundColor = 'green';
+                audioButton.style.color = 'white';
                 audioButton.addEventListener('click', function() {
                     window.location.replace('/dialogue/' + dialogue.id)
+                });
+            }
+
+            else {
+                audioButton.textContent = 'Generate Audio';
+                audioButton.style.marginRight = '5px';
+                audioButton.addEventListener('click', function() {
+                    window.location.replace('/generate-audio?id=' + dialogue.id)
                 });
             }
 
@@ -91,6 +106,7 @@
             deleteButton.style.border = 'none';
             deleteButton.style.padding = '4px 8px';
             
+            buttonsDiv.appendChild(audioButton);
             buttonsDiv.appendChild(editButton);
             buttonsDiv.appendChild(deleteButton);
             

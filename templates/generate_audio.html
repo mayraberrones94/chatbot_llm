@@ -12,6 +12,7 @@
 <body>
     <div id="main">
   <h1>Generate Audio from Dialogue</h1>
+  <p>go to <a href="/history">history</a> ~ generate <a href="/">text</a></p>
   <form id="audio-form" class="block">
     <label for="dialogue_id">Select Dialogue:</label>
     <select id="dialogue_id" name="dialogue_id" required>
@@ -89,6 +90,20 @@
 
    <div id="audio-results"></div>
     <script>
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const idParam = urlParams.get('id');
+
+        // Set the default selected option if id parameter exists
+        if (idParam) {
+            const selectElement = document.getElementById('dialogue_id');
+            const option = selectElement.querySelector(`option[value="${idParam}"]`);
+            
+            if (option) {
+                option.selected = true;
+            }
+        }
+
         document.getElementById('audio-form').addEventListener('submit', async function(e) {
             e.preventDefault();
             

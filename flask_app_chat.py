@@ -335,6 +335,7 @@ def generate_audio():
         "style": float(style) if style else None,
         "speed": float(speed) if speed else None,
     }
+    print(params)
     
     if request.method == "POST":
         # Generate audio and get the dialogue_id
