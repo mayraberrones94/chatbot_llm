@@ -70,9 +70,15 @@
             // Right side - buttons
             const buttonsDiv = document.createElement('div');
             
-            const audioButton = document.createElement('button');
-            audioButton.textContent = 'View Audio';
-            audioButton.style.marginRight = '5px';
+            if(dialogue.audio) {
+                const audioButton = document.createElement('button');
+                audioButton.textContent = 'View Audio';
+                audioButton.style.marginRight = '5px';
+                buttonsDiv.appendChild(audioButton);
+                audioButton.addEventListener('click', function() {
+                    window.location.replace('/dialogue/' + dialogue.id)
+                });
+            }
 
             const editButton = document.createElement('button');
             editButton.textContent = 'Edit';
@@ -85,7 +91,6 @@
             deleteButton.style.border = 'none';
             deleteButton.style.padding = '4px 8px';
             
-            buttonsDiv.appendChild(audioButton);
             buttonsDiv.appendChild(editButton);
             buttonsDiv.appendChild(deleteButton);
             
@@ -135,10 +140,6 @@
                     content.style.display = 'none';
                     expandSymbol.textContent = '+';
                 }
-            });
-            
-            audioButton.addEventListener('click', function() {
-                window.location.replace('/dialogue/' + dialogue.id)
             });
 
             editButton.addEventListener('click', function() {

@@ -56,82 +56,6 @@ app = Flask(__name__)
 app.app_context().push()
 app.teardown_appcontext(database_utils.close_db)
 
-# Template
-TEMPLATE = """
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Prompt Testing</title>
-    <link rel="stylesheet" href="/static/style.css" />
-</head>
-<body>
-    <h1>Prompt Testing</h1>
-    <div id="main">
-        <div>
-        <h2>Setup</h2>
-        <div id="form-container">
-            <form id="prompt-form" method="get">
-
-            <label for="initial-prompt">Initial Question:</label>
-            <input type="text" value="when did it begin exactly?" name="initial-prompt" />
-
-                <label for="model">Model:</label>
-                <select id="model" name="model">
-                    <option value="dream_gpt2">Dream + GPT2</option>
-                    <option value="dream_email" selected>Dream + Email + GPT2</option>
-                </select>
-
-                <label for="mode">Follow up Mode:</label>
-                <select id="mode" name="mode">
-                    <option value="single">Single Prompt</option>
-                    <option value="multiple" selected>Multiple Prompts</option>
-                </select>
-
-                <!-- Single prompts container -->
-                <div id="single-prompt-section" style="display: none; margin-top: 10px;">
-                    <div class="prompt-wrapper">
-                        <label for="single-prompt">Prompt:</label>
-                        <textarea id="single-prompt" name="single-prompt" rows="4" cols="50"
-                            placeholder="Enter your full prompt here..."></textarea>
-                        <p> Note: the phrase "Separate each generated text with an underscore." is added onto this prompt on the backend to allow the single response of the model to be split into multiple phrases. You shouldn't need to add any additional separators. </p>
-                    </div>
-                </div>
-
-                <!-- Multiple prompts container -->
-                <div id="multiple-prompts-section" style="margin-top: 10px;">
-                    <div id="follow-up">
-                        <div class="prompt-wrapper">
-                        <label for="claude-p1">Follow Up Prompt 1:</label>
-                        <textarea id="claude-p1" name="claude-prompts" rows="4" cols="50"
-                            placeholder="You are role playing a game of telephone, in which your task is to repeat a piece of text, indicated by <text></text> tags. Your role is to attempt to repeat the paragraph, though you misremember phrases, sometimes retaining their approximate meaning but changing the words, sometimes changing the meaning quite a bit but retaining some of the texture. Aim for a natural tone. Do NOT include any extra commentary or explanation."></textarea>
-                        </div>
-                    </div>
-                    <button type="button" id="add-prompt-btn">+ Add Follow-Up Prompt</button>
-                </div>
-
-
-                <button type="submit">submit</button>
-            </form>
-        </div>
-        </div>
-
-        <div>
-            <h2>Results</h2>
-            <div id="results">
-                <div id="initial"> </div>
-                <form id="db-form">
-                    <div id="db-form-inner">
-                    </div>
-                    <button type="submit">submit to database</button>
-                </form>
-            </div>
-        </div>
-    </div>
-</body>
-    <script src="/static/main.js"></script>
-</html>
-"""
-
 def trim_fragment_start(text):
     # Step 1: Remove leading fragment like "October).", "Europe)."
     text = re.sub(r'^[A-Z][a-z]+\)\.\s*', '', text)
@@ -282,6 +206,8 @@ def get_dialogues():
         conn.row_factory = sqlite3.Row 
         cursor = conn.cursor()
         
+        # need to add a line to see if audio generated
+
         cursor.execute("""
             SELECT 
                 d.id,
@@ -290,10 +216,13 @@ def get_dialogues():
                 d.created_at,
                 db.speaker,
                 db.block_order,
-                db.text as block_text
+                db.text as block_text,
+                da.created_at as audio_created_at,  -- Add this!
+                da.file_path as audio_file_path     -- And maybe this
             FROM dialogue d
             LEFT JOIN dialogue_block db ON d.id = db.dialogue_id
-            ORDER BY d.id DESC, db.block_order ASC
+            LEFT JOIN dialogue_audio da ON db.id = da.block_id  -- Keep LEFT JOIN
+            ORDER BY d.id DESC, db.block_order ASC;
         """)
         
         rows = cursor.fetchall()
@@ -302,14 +231,16 @@ def get_dialogues():
         dialogues = {}
         for row in rows:
             dialogue_id = row['id']
-            
+            audio = True if row['audio_created_at'] else False
+
             if dialogue_id not in dialogues:
                 dialogues[dialogue_id] = {
                     'id': dialogue_id,
                     'prompt': row['prompt'],
                     'initial_response': row['initial_response'],
                     'created_at': row['created_at'],
-                    'blocks': []
+                    'blocks': [],
+                    'audio': audio
                 }
             
             # Add block if it exists
