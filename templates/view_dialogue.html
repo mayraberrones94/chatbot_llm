@@ -17,12 +17,13 @@
 
       <textarea name="text" rows="3" cols="60">{{ block.text }}</textarea><br><br>
 
-      <div>
+      <div class="audio-container">
         {% if block.file_path %}
           <audio id="audio-{{ block.id }}" controls>
             <source src="{{ url_for('serve_audio', filename=block.file_path) }}?t={{ timestamp }}" type="audio/mpeg">
             Your browser does not support the audio element.
           </audio>
+           <span id="status-{{ block.id }}" class="status-dot"></span>
         {% else %}
           <p><em>No audio yet for this block</em></p>
         {% endif %}
@@ -47,33 +48,44 @@
         {% endif %}
       </select><br>
 
+    <div id="params">
+    <div>
     <!-- Stability -->
     <label for="stability">Stability: 
       <span id="stability-value">{{ block.stability or 0.0 }}</span>
     </label>
     <input type="range" step="0.1" min="0.0" max="1.0" name="stability" value="{{ block.stability or 0.0 }}"
-           oninput="document.getElementById('stability-value').innerText = this.value">
+           oninput="document.getElementById('stability-value').innerText = this.value"><br>
+    </div>
 
     <!-- Style -->
+    <div>
     <label for="style">Style: 
       <span id="style-value">{{ block.style or 0.0 }}</span>
     </label>
     <input type="range" step="0.1" min="0.0" max="1.0" name="style" value="{{ block.style or 0.0 }}"
-           oninput="document.getElementById('style-value').innerText = this.value">
+           oninput="document.getElementById('style-value').innerText = this.value"><br>
+    </div>
+
 
     <!-- Similarity -->
+    <div>
     <label for="similarity_boost">Similarity Boost: 
       <span id="similarity-value">{{ block.similarity_boost or 0.0 }}</span>
     </label>
     <input type="range" step="0.1" min="0.0" max="1.0" name="similarity_boost" value="{{ block.similarity_boost or 0.0 }}"
-           oninput="document.getElementById('similarity-value').innerText = this.value">
+           oninput="document.getElementById('similarity-value').innerText = this.value"><br>
+    </div>
 
     <!-- Speed -->
+    <div>
     <label for="speed">Speed: 
       <span id="speed-value">{{ block.speed or 1.0 }}</span>
     </label>
     <input type="range" step="0.01" min="0.7" max="1.2" name="speed" value="{{ block.speed or 1.0 }}"
-           oninput="document.getElementById('speed-value').innerText = this.value">
+           oninput="document.getElementById('speed-value').innerText = this.value"><br>
+      </div>
+    </div>
 
     <!-- Speaker boost -->
     <label>
@@ -100,7 +112,10 @@ document.querySelectorAll(".audio-form").forEach(form => {
     e.preventDefault();
     const formData = new FormData(this);
     const blockId = formData.get("block_id");
-    console.log(formData)
+
+    const statusDot = document.getElementById(`status-${blockId}`);
+    statusDot.classList.remove("ready");
+    statusDot.classList.add("generating");
 
     const response = await fetch(this.action, {
       method: "POST",
@@ -114,7 +129,11 @@ document.querySelectorAll(".audio-form").forEach(form => {
       // Add cache-busting timestamp
       sourceEl.src = sourceEl.src.split("?")[0] + "?t=" + Date.now();
       audioEl.load();
+      statusDot.classList.remove("generating");
+      statusDot.classList.add("ready");
     } else {
+      statusDot.classList.remove("generating");
+      statusDot.style.backgroundColor = "red"; // error case
       alert("Error generating audio!");
     }
   });

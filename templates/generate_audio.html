@@ -12,9 +12,9 @@
 <body>
     <div id="main">
   <h1>Generate Audio from Dialogue</h1>
-  <form id="audio-form">
+  <form id="audio-form" class="block">
     <label for="dialogue_id">Select Dialogue:</label>
-    <select name="dialogue_id" required>
+    <select id="dialogue_id" name="dialogue_id" required>
       {% for d in dialogues %}
         <option value="{{ d.id }}">Dialogue {{ d.id }}</option>
       {% endfor %}
@@ -23,7 +23,7 @@
 
     <label for="speaker1_voice">Speaker 1 Voice:</label>
     <select name="speaker1_voice" required>
-      <option value="sherron">Sherron Watkins</option>
+      <option value="sherron" selected>Sherron Watkins</option>
       <option value="james">James Timmins</option>
     </select>
     <br><br>
@@ -31,9 +31,54 @@
     <label for="speaker2_voice">Speaker 2 Voice:</label>
     <select name="speaker2_voice" required>
       <option value="sherron">Sherron Watkins</option>
-      <option value="james">James Timmins</option>
+      <option value="james" selected>James Timmins</option>
     </select>
     <br><br>
+
+    <div id="params">
+    <div>
+    <!-- Stability -->
+    <label for="stability">Stability: 
+      <span id="stability-value">0.0</span>
+    </label>
+    <input type="range" step="0.1" min="0.0" max="1.0" name="stability" value="0.0"
+           oninput="document.getElementById('stability-value').innerText = this.value"><br>
+    </div>
+
+    <!-- Style -->
+    <div>
+    <label for="style">Style: 
+      <span id="style-value">0.0</span>
+    </label>
+    <input type="range" step="0.1" min="0.0" max="1.0" name="style" value="0.0"
+           oninput="document.getElementById('style-value').innerText = this.value"><br>
+    </div>
+
+
+    <!-- Similarity -->
+    <div>
+    <label for="similarity_boost">Similarity Boost: 
+      <span id="similarity-value">0.0</span>
+    </label>
+    <input type="range" step="0.1" min="0.0" max="1.0" name="similarity_boost" value="0.0"
+           oninput="document.getElementById('similarity-value').innerText = this.value"><br>
+    </div>
+
+    <!-- Speed -->
+    <div>
+    <label for="speed">Speed: 
+      <span id="speed-value">1.0</span>
+    </label>
+    <input type="range" step="0.01" min="0.7" max="1.2" name="speed" value="1.0"
+           oninput="document.getElementById('speed-value').innerText = this.value"><br>
+      </div>
+    </div>
+
+    <!-- Speaker boost -->
+    <label>
+      <input type="checkbox" name="use_speaker_boost">
+      Use Speaker Boost
+    </label>
 
         <button type="submit">Generate Audio</button>
     </form>
@@ -78,13 +123,15 @@
         
         function displayAudioResults(audioFiles) {
             const resultsDiv = document.getElementById('audio-results');
-            
+
             if (audioFiles.length === 0) {
                 resultsDiv.innerHTML = '<p>No audio files generated.</p>';
                 return;
             }
+            const dialogueId = document.getElementById("dialogue_id").value;
             
             resultsDiv.innerHTML = '<h2>Generated Audio</h2>';
+            resultsDiv.innerHTML += `<p><a href="/dialogue/${dialogueId}">edit audio</a> for dialogue ${dialogueId}</p>`;
             
             audioFiles.forEach(file => {
                 const blockDiv = document.createElement('div');
