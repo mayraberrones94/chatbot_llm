@@ -13,7 +13,7 @@
       <input type="hidden" name="block_id" value="{{ block.id }}">
       <input type="hidden" name="speaker" value="{{ block.speaker }}">
 
-      <h3>{{ block.speaker }} (Block {{ block.block_order }})</h3>
+      <h3>Speaker {{ block.speaker }} (Block {{ block.block_order }})</h3>
 
       <textarea name="text" rows="3" cols="60">{{ block.text }}</textarea><br><br>
 
@@ -103,7 +103,7 @@
   </div>
   {% endfor %}
 
-  <p><a href="{{ url_for('generate_audio') }}">Back to Generate Audio</a></p>
+  <p>back to <a href="{{ url_for('generate_audio') }}">generate audio</a> or <a href="/history">history</a></p>
 </body>
 
 <script>

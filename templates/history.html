@@ -70,6 +70,10 @@
             // Right side - buttons
             const buttonsDiv = document.createElement('div');
             
+            const audioButton = document.createElement('button');
+            audioButton.textContent = 'View Audio';
+            audioButton.style.marginRight = '5px';
+
             const editButton = document.createElement('button');
             editButton.textContent = 'Edit';
             editButton.style.marginRight = '5px';
@@ -81,6 +85,7 @@
             deleteButton.style.border = 'none';
             deleteButton.style.padding = '4px 8px';
             
+            buttonsDiv.appendChild(audioButton);
             buttonsDiv.appendChild(editButton);
             buttonsDiv.appendChild(deleteButton);
             
@@ -132,6 +137,10 @@
                 }
             });
             
+            audioButton.addEventListener('click', function() {
+                window.location.replace('/dialogue/' + dialogue.id)
+            });
+
             editButton.addEventListener('click', function() {
                 editDialogue(dialogue);
             });
