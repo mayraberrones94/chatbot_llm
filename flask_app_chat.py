@@ -12,6 +12,7 @@ from claude_utils import call_model
 import anthropic
 import database_utils
 import audio_utils
+from elevenlabs import stream, save
 from datetime import datetime
 load_dotenv()
 
@@ -439,7 +440,6 @@ def serve_audio(filename):
 @app.route("/insert")
 def example():
     raw_data = request.args.get("data")
-    print("got req, raw data is", raw_data)
     # Parse the JSON data
     data = json.loads(raw_data)
     
@@ -463,21 +463,19 @@ def view_dialogue(dialogue_id):
         new_text = request.form["text"].strip()
         voice = request.form["voice"]
         speaker = request.form["speaker"]
-        print(speaker)
 
         # Update text
         cur.execute("UPDATE dialogue_block SET text = ? WHERE id = ?", (new_text, block_id))
 
         # Generate audio
-        audio_bytes = audio_utils.call_fish_api(new_text, voice)
+        audio = audio_utils.call_elevenlabs_api(new_text, voice)
 
         dialogue_dir = os.path.join("audio", f"dialogue_{dialogue_id}")
         os.makedirs(dialogue_dir, exist_ok=True)
 
         filename = f"block_{block_id}_{speaker}.mp3"
         file_path = os.path.join(dialogue_dir, filename)
-        with open(file_path, "wb") as f:
-            f.write(audio_bytes)
+        save(audio, file_path)
 
         # Record in DB
         cur.execute(
@@ -512,7 +510,7 @@ def view_dialogue(dialogue_id):
     )
     blocks = cur.fetchall()
 
-    return render_template("view_dialogue.html", dialogue_id=dialogue_id, blocks=blocks)
+    return render_template("view_dialogue.html", dialogue_id=dialogue_id, blocks=blocks, timestamp=timestamp)
 
 
 @app.route('/history')
