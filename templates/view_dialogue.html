@@ -10,7 +10,7 @@
   {% for block in blocks %}
   <div class="block">
     <form class="audio-form" style="margin-bottom:20px;">
-      <input type="hidden" name="block_id" value="{{ block.id }}">
+      <input type="hidden" name="block_id" value="{{ block.block_order }}">
       <input type="hidden" name="speaker" value="{{ block.speaker }}">
 
       <h3>Speaker {{ block.speaker }} (Block {{ block.block_order }})</h3>
@@ -19,11 +19,11 @@
 
       <div class="audio-container">
         {% if block.file_path %}
-          <audio id="audio-{{ block.id }}" controls>
+          <audio id="audio-{{ block.block_order }}" controls>
             <source src="{{ url_for('serve_audio', filename=block.file_path) }}?t={{ timestamp }}" type="audio/mpeg">
             Your browser does not support the audio element.
           </audio>
-           <span id="status-{{ block.id }}" class="status-dot"></span>
+           <span id="status-{{ block.block_order }}" class="status-dot"></span>
         {% else %}
           <p><em>No audio yet for this block</em></p>
         {% endif %}
