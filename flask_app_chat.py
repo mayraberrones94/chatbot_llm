@@ -389,10 +389,25 @@ def update_dialogue(dialogue_id):
 def generate_audio():
     db = database_utils.get_db()
     cur = db.cursor()
+
+    stability = request.form.get("stability")
+    use_speaker_boost = request.form.get("use_speaker_boost") == "on"
+    similarity_boost = request.form.get("similarity_boost")
+    style = request.form.get("style")
+    speed = request.form.get("speed")
+
+    # Convert optional values to proper types or None
+    params = {
+        "stability": float(stability) if stability else None,
+        "use_speaker_boost": use_speaker_boost,
+        "similarity_boost": float(similarity_boost) if similarity_boost else None,
+        "style": float(style) if style else None,
+        "speed": float(speed) if speed else None,
+    }
     
     if request.method == "POST":
         # Generate audio and get the dialogue_id
-        dialogue_id = audio_utils.audio_gen(request, db, cur)
+        dialogue_id = audio_utils.audio_gen(request, db, cur, params)
         
         # Fetch the generated audio files for this dialogue
         cur.execute("""
@@ -460,15 +475,32 @@ def view_dialogue(dialogue_id):
 
     if request.method == "POST":
         block_id = int(request.form["block_id"])
+
         new_text = request.form["text"].strip()
         voice = request.form["voice"]
         speaker = request.form["speaker"]
+
+        stability = request.form.get("stability")
+        use_speaker_boost = request.form.get("use_speaker_boost") == "on"
+        similarity_boost = request.form.get("similarity_boost")
+        style = request.form.get("style")
+        speed = request.form.get("speed")
+
+        # Convert optional values to proper types or None
+        params = {
+            "stability": float(stability) if stability else None,
+            "use_speaker_boost": use_speaker_boost,
+            "similarity_boost": float(similarity_boost) if similarity_boost else None,
+            "style": float(style) if style else None,
+            "speed": float(speed) if speed else None,
+        }
+
 
         # Update text
         cur.execute("UPDATE dialogue_block SET text = ? WHERE id = ?", (new_text, block_id))
 
         # Generate audio
-        audio = audio_utils.call_elevenlabs_api(new_text, voice)
+        audio = audio_utils.call_elevenlabs_api(new_text, voice, params)
 
         dialogue_dir = os.path.join("audio", f"dialogue_{dialogue_id}")
         os.makedirs(dialogue_dir, exist_ok=True)
@@ -478,13 +510,21 @@ def view_dialogue(dialogue_id):
         save(audio, file_path)
 
         # Record in DB
-        cur.execute(
-            """
-            INSERT INTO dialogue_audio (block_id, speaker, voice, file_path)
-            VALUES (?, ?, ?, ?)
-            """,
-            (block_id, speaker, voice, file_path),
-        )
+        cur.execute("""
+        INSERT INTO dialogue_audio
+          (block_id, speaker, voice, file_path, stability, use_speaker_boost, similarity_boost, style, speed)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            block_id,
+            speaker,
+            voice,
+            file_path,
+            stability if stability is not None else None,
+            1 if use_speaker_boost else 0,
+            similarity_boost if similarity_boost is not None else None,
+            style if style is not None else None,
+            speed if speed is not None else None,
+        ))
         db.commit()
 
         return redirect(url_for("view_dialogue", dialogue_id=dialogue_id, timestamp=timestamp))

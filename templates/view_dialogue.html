@@ -9,7 +9,7 @@
 
   {% for block in blocks %}
   <div class="block">
-    <form method="post" style="margin-bottom:20px;">
+    <form class="audio-form" style="margin-bottom:20px;">
       <input type="hidden" name="block_id" value="{{ block.id }}">
       <input type="hidden" name="speaker" value="{{ block.speaker }}">
 
@@ -19,7 +19,7 @@
 
       <div>
         {% if block.file_path %}
-          <audio controls>
+          <audio id="audio-{{ block.id }}" controls>
             <source src="{{ url_for('serve_audio', filename=block.file_path) }}?t={{ timestamp }}" type="audio/mpeg">
             Your browser does not support the audio element.
           </audio>
@@ -47,6 +47,40 @@
         {% endif %}
       </select><br>
 
+    <!-- Stability -->
+    <label for="stability">Stability: 
+      <span id="stability-value">{{ block.stability or 0.0 }}</span>
+    </label>
+    <input type="range" step="0.1" min="0.0" max="1.0" name="stability" value="{{ block.stability or 0.0 }}"
+           oninput="document.getElementById('stability-value').innerText = this.value">
+
+    <!-- Style -->
+    <label for="style">Style: 
+      <span id="style-value">{{ block.style or 0.0 }}</span>
+    </label>
+    <input type="range" step="0.1" min="0.0" max="1.0" name="style" value="{{ block.style or 0.0 }}"
+           oninput="document.getElementById('style-value').innerText = this.value">
+
+    <!-- Similarity -->
+    <label for="similarity_boost">Similarity Boost: 
+      <span id="similarity-value">{{ block.similarity_boost or 0.0 }}</span>
+    </label>
+    <input type="range" step="0.1" min="0.0" max="1.0" name="similarity_boost" value="{{ block.similarity_boost or 0.0 }}"
+           oninput="document.getElementById('similarity-value').innerText = this.value">
+
+    <!-- Speed -->
+    <label for="speed">Speed: 
+      <span id="speed-value">{{ block.speed or 1.0 }}</span>
+    </label>
+    <input type="range" step="0.01" min="0.7" max="1.2" name="speed" value="{{ block.speed or 1.0 }}"
+           oninput="document.getElementById('speed-value').innerText = this.value">
+
+    <!-- Speaker boost -->
+    <label>
+      <input type="checkbox" name="use_speaker_boost" {% if block.use_speaker_boost %}checked{% endif %}>
+      Use Speaker Boost
+    </label>
+
       {% if block.file_path %}
         <button type="submit">regenerate</button>
       {% else %}
@@ -59,4 +93,31 @@
 
   <p><a href="{{ url_for('generate_audio') }}">Back to Generate Audio</a></p>
 </body>
+
+<script>
+document.querySelectorAll(".audio-form").forEach(form => {
+  form.addEventListener("submit", async function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    const blockId = formData.get("block_id");
+    console.log(formData)
+
+    const response = await fetch(this.action, {
+      method: "POST",
+      body: formData
+    });
+
+    if (response.ok) {
+      // Reload only the audio element
+      const audioEl = document.getElementById(`audio-${blockId}`);
+      const sourceEl = audioEl.querySelector("source");
+      // Add cache-busting timestamp
+      sourceEl.src = sourceEl.src.split("?")[0] + "?t=" + Date.now();
+      audioEl.load();
+    } else {
+      alert("Error generating audio!");
+    }
+  });
+});
+</script>
 </html>

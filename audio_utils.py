@@ -18,7 +18,7 @@ elevenlabs = ElevenLabs(
   api_key=ELEVENLABS_API_KEY,
 )
 
-def call_elevenlabs_api(text, voice):
+def call_elevenlabs_api(text, voice, params):
     ref_id = sherron if voice == "sherron" else james
 
     # Generate and save directly
@@ -27,6 +27,7 @@ def call_elevenlabs_api(text, voice):
         voice_id=ref_id,
         model_id="eleven_multilingual_v2",
         output_format="mp3_44100_128",
+        voice_settings=params
     )
 
     return audio
@@ -55,18 +56,7 @@ def call_fish_api(text, voice):
     return resp.content
 
 
-def audio_update(request, db, cur):
-    dialogue_id = int(request.form["dialogue_id"])
-    speaker1_voice = request.form["speaker1_voice"]
-    speaker2_voice = request.form["speaker2_voice"]
-    audio = call_elevenlabs_api(text, "voice")
-    filename = f"block_{order}_{speaker}.mp3"
-    file_path = os.path.join(dialogue_dir, filename)
-    save(audio, file_path)
-
-
-
-def audio_gen(request, db, cur):
+def audio_gen(request, db, cur, params):
     dialogue_id = int(request.form["dialogue_id"])
     speaker1_voice = request.form["speaker1_voice"]
     speaker2_voice = request.form["speaker2_voice"]
@@ -90,7 +80,7 @@ def audio_gen(request, db, cur):
         voice = speaker1_voice if speaker == "1" else speaker2_voice
 
         # Call elevenlabs API
-        audio = call_elevenlabs_api(text, "voice")
+        audio = call_elevenlabs_api(text, voice, params)
         filename = f"block_{order}_{speaker}.mp3"
         file_path = os.path.join(dialogue_dir, filename)
         save(audio, file_path)
@@ -102,10 +92,21 @@ def audio_gen(request, db, cur):
         )
         
         # Insert new entry
-        cur.execute(
-            "INSERT INTO dialogue_audio (block_id, speaker, voice, file_path) VALUES (?, ?, ?, ?)",
-            (block_id, speaker, voice, file_path)
-        )
+        cur.execute("""
+        INSERT INTO dialogue_audio
+          (block_id, speaker, voice, file_path, stability, use_speaker_boost, similarity_boost, style, speed)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            block_id,
+            speaker,
+            voice,
+            file_path,
+            params["stability"] if params["stability"] is not None else None,
+            1 if params["use_speaker_boost"] else 0,
+            params["similarity_boost"] if params["similarity_boost"] is not None else None,
+            params["style"] if params["style"] is not None else None,
+            params["speed"] if params["speed"] is not None else None,
+        ))
 
     db.commit()
     
