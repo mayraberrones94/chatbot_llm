@@ -106,37 +106,46 @@
 </body>
 
 <script>
-document.querySelectorAll(".audio-form").forEach(form => {
-  form.addEventListener("submit", async function(e) {
-    e.preventDefault();
-    const formData = new FormData(this);
-    // const blockId = formData.get("block_id");
-    const blockOrder = formData.get("block_order");
-
-    const statusDot = document.getElementById(`status-${blockOrder}`);
-    statusDot.classList.remove("ready");
-    statusDot.classList.add("generating");
-
-    const response = await fetch(this.action, {
-      method: "POST",
-      body: formData
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('input[type="range"]').forEach(slider => {
+        // Force a complete reset by clearing and setting
+        const targetValue = slider.getAttribute('value') || slider.value;
+        slider.value = '';
+        slider.value = targetValue;
     });
-
-    if (response.ok) {
-      // Reload only the audio element
-      const audioEl = document.getElementById(`audio-${blockOrder}`);
-      const sourceEl = audioEl.querySelector("source");
-      // Add cache-busting timestamp
-      sourceEl.src = sourceEl.src.split("?")[0] + "?t=" + Date.now();
-      audioEl.load();
-      statusDot.classList.remove("generating");
-      statusDot.classList.add("ready");
-    } else {
-      statusDot.classList.remove("generating");
-      statusDot.style.backgroundColor = "red"; // error case
-      alert("Error generating audio!");
-    }
-  });
 });
+
+  document.querySelectorAll(".audio-form").forEach(form => {
+    form.addEventListener("submit", async function(e) {
+      e.preventDefault();
+      const formData = new FormData(this);
+      // const blockId = formData.get("block_id");
+      const blockOrder = formData.get("block_order");
+
+      const statusDot = document.getElementById(`status-${blockOrder}`);
+      statusDot.classList.remove("ready");
+      statusDot.classList.add("generating");
+
+      const response = await fetch(this.action, {
+        method: "POST",
+        body: formData
+      });
+
+      if (response.ok) {
+        // Reload only the audio element
+        const audioEl = document.getElementById(`audio-${blockOrder}`);
+        const sourceEl = audioEl.querySelector("source");
+        // Add cache-busting timestamp
+        sourceEl.src = sourceEl.src.split("?")[0] + "?t=" + Date.now();
+        audioEl.load();
+        statusDot.classList.remove("generating");
+        statusDot.classList.add("ready");
+      } else {
+        statusDot.classList.remove("generating");
+        statusDot.style.backgroundColor = "red"; // error case
+        alert("Error generating audio!");
+      }
+    });
+  });
 </script>
 </html>
