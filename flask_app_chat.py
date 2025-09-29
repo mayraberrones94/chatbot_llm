@@ -374,6 +374,14 @@ def generate_audio():
     dialogues = cur.fetchall()
     return render_template("generate_audio.html", dialogues=dialogues)
 
+# get current status of audio files
+@app.route("/audio_length")
+def get_audio_length():
+    total_length = audio_utils.get_total_audio_length()
+    response="total length is " + total_length
+    return response
+
+
 # New route to serve audio files
 @app.route("/audio/<path:filename>")
 def serve_audio(filename):

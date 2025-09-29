@@ -4,6 +4,7 @@ from flask import Flask, request, render_template, redirect, url_for
 import database_utils
 from elevenlabs import stream, save
 from elevenlabs.client import ElevenLabs
+from mutagen.mp3 import MP3
 
 app = Flask(__name__)
 
@@ -17,6 +18,25 @@ james = "IAxjf7JIkyfK2drBAIUO"
 elevenlabs = ElevenLabs(
   api_key=ELEVENLABS_API_KEY,
 )
+
+def convert(seconds):
+    hours = seconds // 3600
+    seconds %= 3600
+    mins = seconds // 60
+    seconds %= 60
+    return(hours, mins, seconds)
+
+def get_total_audio_length():
+    total_length = 0
+    for root, dirs, files in os.walk('./audio'):
+        for file in files:
+            if file.endswith(".mp3"):
+                audio = MP3(os.path.join(root, file))
+                hours, mins, seconds = convert(audio.info.length)
+                total_length += audio.info.length
+
+    hours, mins, seconds = convert(total_length)
+    return str(int(hours)) + ":" + str(int(mins)) + ":" + str(int(seconds))
 
 def call_elevenlabs_api(text, voice, params):
     ref_id = sherron if voice == "sherron" else james
